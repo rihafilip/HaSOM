@@ -1,0 +1,55 @@
+name:                HaSOM
+version:             0.1.0.0
+github:              "rihafilip/HaSOM"
+license:             BSD3
+author:              "Filip Říha"
+maintainer:          "riha.fina@gmail.com"
+copyright:           "2022 Říha Filip"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Compilers/Interpreters
+
+description:         Please see the README on GitHub at <https://github.com/rihafilip/HaSOM#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  HaSOM-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - HaSOM
+
+tests:
+  HaSOM-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - HaSOM

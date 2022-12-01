@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "HaSOM:lib"
+
+    - path: "./app/Main.hs"
+      component: "HaSOM:exe:HaSOM-exe"
+
+    - path: "./app/Paths_HaSOM.hs"
+      component: "HaSOM:exe:HaSOM-exe"
+
+    - path: "./test"
+      component: "HaSOM:test:HaSOM-test"
