@@ -11,12 +11,12 @@ $alpha = [a-zA-Z]
 $escaped = [\\t \\b \\n \\r \\f \\0 \\\' \\\\]
 
 tokens :-
-  \" [^\"]* \" ;
-  $white ;
+  \" (\n | ~\")* \" ;
+  $white+ ;
 
   "primitive" { \_ -> TPrimitive }
-  $alpha [$alpha $digit]* ":" { Keyword }
-  $alpha [$alpha $digit]* { Identifier }
+  $alpha [$alpha $digit _]* ":" { Keyword }
+  $alpha [$alpha $digit _]* { Identifier }
 
   "=" { \_ -> Equal }
 
@@ -52,7 +52,7 @@ tokens :-
   $digit+ { Integer . read }
   $digit+ "." $digit+ { Double . read }
 
-  "'" [$escaped [^\' \\]]* "'" { STString }
+  "'" ($escaped | ~[\' \\])* "'" { STString }
 
 {
 
