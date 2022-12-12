@@ -31,6 +31,8 @@ ghc-options:
 
 build-tools:
   - alex
+  - happy
+
 library:
   source-dirs: src
   dependencies:
