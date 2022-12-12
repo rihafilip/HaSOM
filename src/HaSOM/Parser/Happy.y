@@ -2,6 +2,7 @@
 module HaSOM.Parser.Happy where
 
 import HaSOM.Parser.ParseTree
+import qualified HaSOM.AST as AST
 import HaSOM.Lexer.Token
 
 import Data.List.NonEmpty (NonEmpty(..))
@@ -46,10 +47,12 @@ import Data.List.NonEmpty (NonEmpty(..))
 %%
 
 classdef  : Identifier Equal superclass instanceFields methodStar
-            Separator classFields methodStar EndTerm
-            { MkClass $1 $3 $4 $5 $7 $8 }
-          | Identifier Equal superclass instanceFields methodStar EndTerm
-            { MkClass $1 $3 $4 $5 [] [] }
+            Separator classFields methodStar
+            EndTerm
+            { AST.MkClass $1 $3 $4 $5 $7 $8 }
+          | Identifier Equal superclass instanceFields methodStar
+            EndTerm
+            { AST.MkClass $1 $3 $4 $5 [] [] }
 
 superclass : Identifier NewTerm { Just $1 }
            | NewTerm            { Nothing }
@@ -64,14 +67,14 @@ variableStar : {- empty -}           { [] }
              | variableStar variable { $2 <:> $1 }
 
 methodStar : {- empty -}     { [] }
-         | methodStar method { $2 <:> $1 }
+           | methodStar method { $2 <:> $1 }
 
-method : pattern Equal Primitive   { MkMethod $1 MethodPrimitive }
-       | pattern Equal methodBlock { MkMethod $1 (MethodBlock $3) }
+method : pattern Equal Primitive   { AST.MkMethod $1 AST.MethodPrimitive }
+       | pattern Equal methodBlock { AST.MkMethod $1 (AST.MethodBlock (transformBlock $3)) }
 
-pattern : unaryPattern   { UnaryMethod $1 }
-        | keywordPattern { KeywordMethod $1 }
-        | binaryPattern  { uncurry BinaryMethod $1 }
+pattern : unaryPattern   { AST.UnaryMethod $1 }
+        | keywordPattern { AST.KeywordMethod $1 }
+        | binaryPattern  { uncurry AST.BinaryMethod $1 }
 
 unaryPattern : unarySelector { $1 }
 
@@ -108,8 +111,8 @@ operator : Or     { "|" }
          | At     { "@" }
          | Per    { "%" }
 
-identifier : Primitive  { Primitive }
-           | Identifier { NamedIdentifier $1 }
+identifier : Primitive  { AST.Primitive }
+           | Identifier { AST.NamedIdentifier $1 }
 
 keyword : Keyword { $1 }
 
@@ -122,9 +125,9 @@ localDefs : {- empty -}        { [] }
           | localDefs variable { $2 <:> $1 }
 
 blockBody : Exit result { Exit $2 }
-          | expression Period blockBody { St $1 (Just $3) }
-          | expression Period { St $1 Nothing }
-          | expression { St $1 Nothing }
+          | expression Period blockBody { BlockBody $1 (Just $3) }
+          | expression Period { BlockBody $1 Nothing }
+          | expression { BlockBody $1 Nothing }
 
 result : expression Period { $1 }
        | expression        { $1 }
@@ -205,10 +208,10 @@ literalInteger : Integer { NInteger $1 }
 literalDouble : Double { NDouble $1 }
 
 {- inlined selector -}
-literalSymbol : Pound string          { Symbol $2 }
-              | Pound binarySelector  { BinSelector $2 }
-              | Pound keywordSelector { KeywSelector $2 }
-              | Pound unarySelector   { UnSelector $2 }
+literalSymbol : Pound string          { AST.Symbol $2 }
+              | Pound binarySelector  { AST.SBinSelector $2 }
+              | Pound keywordSelector { AST.SKWSelector $2 }
+              | Pound unarySelector   { AST.SUnSelector $2 }
 
 {- inlined KeywordSequence -}
 keywordSelector : Keyword { $1 <:| [] }

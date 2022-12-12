@@ -1,54 +1,18 @@
 module HaSOM.Parser.ParseTree where
 
+import HaSOM.AST (Variable, UnarySelector, BinarySelector, Keyword, Symbol)
+import qualified HaSOM.AST as AST
 import Data.List.NonEmpty (NonEmpty)
-
-data Identifier = Primitive | NamedIdentifier String
-  deriving (Eq, Show)
-
-type Variable = Identifier
-
-data Class = MkClass
-  { name :: String,
-    superclass :: Maybe String,
-    instanceFields :: [Variable],
-    instanceMethods :: [Method],
-    classFields :: [Variable],
-    classMethods :: [Method]
-  }
-  deriving (Eq, Show)
-
------------------------------------------
-
-data Method = MkMethod
-  { methodType :: MethodType,
-    methodBody :: MethodBody
-  }
-  deriving (Eq, Show)
-
-type UnarySelector = Identifier
-type BinarySelector = String
-type Keyword = String
-
-data MethodType
-  = UnaryMethod UnarySelector
-  | BinaryMethod BinarySelector Variable
-  | KeywordMethod (NonEmpty (Keyword, Variable))
-  deriving (Eq, Show)
-
-data MethodBody
-  = MethodPrimitive
-  | MethodBlock (Maybe Block)
-  deriving (Eq, Show)
 
 data Block = MkBlock
   { localDefs :: [Variable]
-  , blockBody :: Statement
+  , blockBody :: BlockBody
   } deriving (Eq, Show)
 
 -----------------------------------------
 
-data Statement
-  = St Expression (Maybe Statement)
+data BlockBody
+  = BlockBody Expression (Maybe BlockBody)
   | Exit Expression
   deriving (Eq, Show)
 
@@ -91,13 +55,6 @@ data Literal
   | LNumber Number
   deriving (Eq, Show)
 
-data Symbol
-  = Symbol String
-  | UnSelector UnarySelector
-  | BinSelector BinarySelector
-  | KeywSelector (NonEmpty Keyword)
-  deriving (Eq, Show)
-
 data Number
   = NInteger Int
   | NDouble Double
@@ -111,3 +68,8 @@ data NestedBlock = MkNestedBlock
   , blockContents :: Maybe Block
   }
   deriving(Eq, Show)
+
+-----------------------------------------
+
+transformBlock :: Maybe Block -> AST.Block
+transformBlock = undefined
