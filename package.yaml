@@ -29,8 +29,12 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
+build-tools:
+  - alex
 library:
   source-dirs: src
+  dependencies:
+  - array
 
 executables:
   HaSOM-exe:

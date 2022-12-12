@@ -1,0 +1,59 @@
+{
+module HaSOM.Lexer.Alex where
+
+import HaSOM.Lexer.Token
+}
+
+%wrapper "basic"
+
+$digit = 0-9
+$alpha = [a-zA-Z]
+$escaped = [\\t \\b \\n \\r \\f \\0 \\\' \\\\]
+
+tokens :-
+  \" [^\"]* \" ;
+  $white ;
+
+  "primitive" { \_ -> TPrimitive }
+  $alpha [$alpha $digit]* ":" { Keyword }
+  $alpha [$alpha $digit]* { Identifier }
+
+  "=" { \_ -> Equal }
+
+  "----" "-"* { \_ -> Separator }
+
+  "(" { \_ -> NewTerm }
+  ")" { \_ -> EndTerm }
+  "|" { \_ -> Or }
+
+  ","   { \_ -> Comma }
+  "-"   { \_ -> Minus }
+  "~"   { \_ -> Not }
+  "&"   { \_ -> And }
+  "*"   { \_ -> Star }
+  "/"   { \_ -> Div }
+  "\\"  { \_ -> Mod }
+  "+"   { \_ -> Plus }
+  ">"   { \_ -> More }
+  "<"   { \_ -> Less }
+  "@"   { \_ -> At }
+  "%"   { \_ -> Per }
+
+  ":"   { \_ -> Colon }
+
+  "["   { \_ -> NewBlock }
+  "]"   { \_ -> EndBlock }
+
+  "#"   { \_ -> Pound }
+  "^"   { \_ -> TExit }
+  "."   { \_ -> Period }
+  ":="  { \_ -> Assign }
+
+  $digit+ { Integer . read }
+  $digit+ "." $digit+ { Double . read }
+
+  "'" [$escaped [^\' \\]]* "'" { STString }
+
+{
+
+}
