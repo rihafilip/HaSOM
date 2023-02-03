@@ -2,22 +2,20 @@ module HaSOM.AST where
 
 import Data.List.NonEmpty ( NonEmpty )
 
-data Identifier = Primitive | NamedIdentifier String
-  deriving (Eq, Show)
-
-type Variable = Identifier
+type Identifier = String
 
 -------------------------------
+type Variable = Identifier
 
 type UnarySelector = Identifier
-type BinarySelector = String
-type Keyword = String
+type BinarySelector = Identifier
+type Keyword = Identifier
 
 -------------------------------
 
 data Class = MkClass
-  { name :: String,
-    superclass :: Maybe String,
+  { name :: Identifier,
+    superclass :: Maybe Identifier,
     instanceFields :: [Variable],
     instanceMethods :: [Method],
     classFields :: [Variable],
@@ -45,9 +43,6 @@ data MethodBody
 
 data Block = MkBlock [Variable] [Expression]
   deriving (Eq, Show)
-
--- primary unaryCall + secondOperand kw1: a kw2: b
--- ((primary unaryCall) + secondOperand) kw1: a kw2: b
 
 data Expression
   = Exit Expression

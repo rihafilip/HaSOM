@@ -111,8 +111,8 @@ operator : Or     { "|" }
          | At     { "@" }
          | Per    { "%" }
 
-identifier : Primitive  { AST.Primitive }
-           | Identifier { AST.NamedIdentifier $1 }
+identifier : Primitive  { "primitive" }
+           | Identifier { $1 }
 
 keyword : Keyword { $1 }
 
