@@ -51,7 +51,7 @@ data Expression
 
   | UnaryCall Expression UnarySelector
   | BinaryCall Expression BinarySelector Expression
-  | KeywordCall Expression [KeywordMessage]
+  | KeywordCall Expression (NonEmpty KeywordMessage)
 
   | PrimaryVariable Variable
   | PrimaryBlock NestedBlock
