@@ -9,6 +9,8 @@ module HaSOM.Parser.ParseTree
     BinaryMessage (..),
     BinaryOperand (..),
     KeywordMessage (..),
+    KeywordFormula (..),
+    Formula (..),
     Literal (..),
     Number (..),
     NestedBlock (..),
@@ -19,7 +21,7 @@ module HaSOM.Parser.ParseTree
 where
 
 import qualified Data.Bifunctor as Bf
-import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.List.NonEmpty (NonEmpty)
 import HaSOM.AST (BinarySelector, Keyword, Symbol, UnarySelector, Variable)
 import qualified HaSOM.AST as AST
 
@@ -62,8 +64,16 @@ data BinaryOperand
   = MkBinaryOperand Primary [UnarySelector]
   deriving (Eq, Show)
 
-data KeywordMessage
-  = MkKeywordMessage Keyword BinaryOperand [BinaryMessage]
+newtype KeywordMessage
+  = MkKeywordMessage (NonEmpty KeywordFormula)
+  deriving (Eq, Show)
+
+data KeywordFormula
+  = MkKeywordFormula Keyword Formula
+  deriving (Eq, Show)
+
+data Formula
+  = MkFormula BinaryOperand [BinaryMessage]
   deriving (Eq, Show)
 
 -----------------------------------------
@@ -128,17 +138,23 @@ transformPrimary (PrimLit lit) = AST.PrimaryLiteral $ transformLiteral lit
 transformBinaryOperand :: BinaryOperand -> AST.Expression
 transformBinaryOperand (MkBinaryOperand prim uns) = foldUnarySelector (transformPrimary prim) uns
 
-transformKeywordMessage :: KeywordMessage -> AST.KeywordMessage
-transformKeywordMessage (MkKeywordMessage kw binOp binMsgs) =
-  let primary = transformBinaryOperand binOp
-      binary = foldBinaryMessage primary binMsgs
-   in AST.MkKeywordMessage kw binary
+transformKeywordMessage :: KeywordMessage -> NonEmpty AST.KeywordMessage
+transformKeywordMessage (MkKeywordMessage formulas) = fmap transformKeywordFormula formulas
+
+transformKeywordFormula :: KeywordFormula -> AST.KeywordMessage
+transformKeywordFormula (MkKeywordFormula kw formula) =
+  let formulaExpr = transformFormula formula
+   in AST.MkKeywordMessage kw formulaExpr
+
+transformFormula :: Formula -> AST.Expression
+transformFormula (MkFormula binOp binMessages) =
+  let binOpExpr = transformBinaryOperand binOp
+   in foldBinaryMessage binOpExpr binMessages
 
 transformKeywordCall :: AST.Expression -> [KeywordMessage] -> AST.Expression
-transformKeywordCall primary kws =
-  case map transformKeywordMessage kws of
-    [] -> primary
-    (x : xs) -> AST.KeywordCall primary (x :| xs)
+transformKeywordCall = foldl f
+  where
+    f currPrimary kwMessage = AST.KeywordCall currPrimary (transformKeywordMessage kwMessage)
 
 transformLiteral :: Literal -> AST.Literal
 transformLiteral (LArray arr) = AST.LArray $ map transformLiteral arr

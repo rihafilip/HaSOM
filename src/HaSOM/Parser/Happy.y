@@ -181,8 +181,15 @@ binaryMessage : binarySelector binaryOperand { MkBinaryMessage $1 $2 }
 
 binaryOperand : primary unaryMessageStar { MkBinaryOperand $1 $2 }
 
-keywordMessage : keyword binaryOperand binaryMessageStar
-                 { MkKeywordMessage $1 $2 $3 }
+keywordMessage : keywordFormulaStar keyword formula
+                 { MkKeywordMessage ( (MkKeywordFormula $2 $3 ) <:| $1 ) }
+
+keywordFormulaStar : {- empty -}
+                    { [] }
+                   | keywordFormulaStar keyword formula
+                    { (MkKeywordFormula $2 $3) <:> $1 }
+
+formula : binaryOperand binaryMessageStar { MkFormula $1 $2 }
 
 nestedTerm : NewTerm expression EndTerm { $2 }
 
