@@ -1,5 +1,6 @@
 {
-module HaSOM.Parser.Happy where
+-- | Happy generated parser
+module HaSOM.Parser.Happy(parse) where
 
 import HaSOM.Parser.ParseTree
 import qualified HaSOM.AST as AST
@@ -249,6 +250,7 @@ infixr 5 <:|
 x <:| [] = x :| []
 x <:| (xs:xss) = xs :| (x <:> xss)
 
+-- TODO make more robust
 happyError s = error $ "parse error on " ++ show s
 
 }

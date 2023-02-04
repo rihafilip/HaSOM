@@ -1,7 +1,10 @@
-module HaSOM.Lexer.Token where
+-- | Definition of lexer tokens
+module HaSOM.Lexer.Token(Token(..)) where
 
+-- | SOM tokens
 data Token
-  = TPrimitive
+  = -- | "primitive" string
+    TPrimitive
   | Identifier String
 
   | Equal
@@ -25,8 +28,6 @@ data Token
   | At
   | Per
 
-  -- | OperatorSequence (NonEmpty Operator)
-
   | Colon
 
   | NewBlock
@@ -41,7 +42,6 @@ data Token
   | Double Double
 
   | Keyword String
-  -- | KeywordSequence (NonEmpty Keyword)
 
   | STString String
   deriving (Eq, Show)

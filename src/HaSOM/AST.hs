@@ -1,6 +1,29 @@
-module HaSOM.AST where
+-- | Representation of SOM class AST
+module HaSOM.AST
+  ( -- * Primitives
+    Identifier,
+    Variable,
+    UnarySelector,
+    BinarySelector,
+    Keyword,
 
-import Data.List.NonEmpty ( NonEmpty )
+    -- * Class definitions
+    Class (..),
+    Method (..),
+    MethodType (..),
+    MethodBody (..),
+
+    -- * Blocks and expressions
+    Block (..),
+    Expression (..),
+    KeywordMessage (..),
+    NestedBlock (..),
+    Literal (..),
+    Symbol (..),
+  )
+where
+
+import Data.List.NonEmpty (NonEmpty)
 
 type Identifier = String
 
@@ -8,7 +31,9 @@ type Identifier = String
 type Variable = Identifier
 
 type UnarySelector = Identifier
+
 type BinarySelector = Identifier
+
 type Keyword = Identifier
 
 -------------------------------
@@ -46,13 +71,11 @@ data Block = MkBlock [Variable] [Expression]
 
 data Expression
   = Exit Expression
-  | Assignation (NonEmpty Variable) Expression
-  | EvalExpression Expression
-
+  | -- | Variable := ... Variable := Expression
+    Assignation (NonEmpty Variable) Expression
   | UnaryCall Expression UnarySelector
   | BinaryCall Expression BinarySelector Expression
   | KeywordCall Expression (NonEmpty KeywordMessage)
-
   | PrimaryVariable Variable
   | PrimaryBlock NestedBlock
   | PrimaryLiteral Literal
@@ -61,7 +84,7 @@ data Expression
 data KeywordMessage = MkKeywordMessage Keyword Expression
   deriving (Eq, Show)
 
--- Arguments, Block
+-- | Arguments and the actual block
 data NestedBlock = MkNestedBlock [Variable] Block
   deriving (Eq, Show)
 

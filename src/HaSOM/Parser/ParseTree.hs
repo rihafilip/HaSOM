@@ -1,14 +1,33 @@
-module HaSOM.Parser.ParseTree where
+-- | Representation of Happy parser output
+module HaSOM.Parser.ParseTree
+  ( -- * Parser tree representation
+    Block (..),
+    BlockBody (..),
+    Expression (..),
+    Evaluation (..),
+    Primary (..),
+    BinaryMessage (..),
+    BinaryOperand (..),
+    KeywordMessage (..),
+    Literal (..),
+    Number (..),
+    NestedBlock (..),
 
-import HaSOM.AST (Variable, UnarySelector, BinarySelector, Keyword, Symbol)
-import qualified HaSOM.AST as AST
-import Data.List.NonEmpty (NonEmpty ((:|)))
+    -- * Transformation function
+    transformBlock,
+  )
+where
+
 import qualified Data.Bifunctor as Bf
+import Data.List.NonEmpty (NonEmpty ((:|)))
+import HaSOM.AST (BinarySelector, Keyword, Symbol, UnarySelector, Variable)
+import qualified HaSOM.AST as AST
 
 data Block = MkBlock
-  { localDefs :: [Variable]
-  , blockBody :: BlockBody
-  } deriving (Eq, Show)
+  { localDefs :: [Variable],
+    blockBody :: BlockBody
+  }
+  deriving (Eq, Show)
 
 -----------------------------------------
 
@@ -65,13 +84,14 @@ data Number
 -----------------------------------------
 
 data NestedBlock = MkNestedBlock
-  { blockArguments :: [Variable]
-  , blockContents :: Maybe Block
+  { blockArguments :: [Variable],
+    blockContents :: Maybe Block
   }
-  deriving(Eq, Show)
+  deriving (Eq, Show)
 
 -----------------------------------------
 
+-- | Transform a ParseTree Block into AST Block
 transformBlock :: Maybe Block -> AST.Block
 transformBlock Nothing = AST.MkBlock [] []
 transformBlock (Just (MkBlock vars body)) = AST.MkBlock vars (transformBlockBody body)
@@ -87,18 +107,17 @@ transformExpression (Eval eval) = transformEvaluation eval
 
 transformEvaluation :: Evaluation -> AST.Expression
 transformEvaluation (MkEvaluation prim uns bins kws) =
-  let
-    primaryExpr = transformPrimary prim
-    unaryExpr = foldUnarySelector primaryExpr uns
-    binaryExpr = foldBinaryMessage unaryExpr bins
-    keywordExpr = transformKeywordCall binaryExpr kws
-  in keywordExpr
+  let primaryExpr = transformPrimary prim
+      unaryExpr = foldUnarySelector primaryExpr uns
+      binaryExpr = foldBinaryMessage unaryExpr bins
+      keywordExpr = transformKeywordCall binaryExpr kws
+   in keywordExpr
 
 foldUnarySelector :: AST.Expression -> [UnarySelector] -> AST.Expression
 foldUnarySelector = foldl AST.UnaryCall
 
 foldBinaryMessage :: AST.Expression -> [BinaryMessage] -> AST.Expression
-foldBinaryMessage = foldl (\prim (MkBinaryMessage selec operand) -> AST.BinaryCall prim selec (transformBinaryOperand operand) )
+foldBinaryMessage = foldl (\prim (MkBinaryMessage selec operand) -> AST.BinaryCall prim selec (transformBinaryOperand operand))
 
 transformPrimary :: Primary -> AST.Expression
 transformPrimary (PrimVar var) = AST.PrimaryVariable var
@@ -111,29 +130,30 @@ transformBinaryOperand (MkBinaryOperand prim uns) = foldUnarySelector (transform
 
 transformKeywordMessage :: KeywordMessage -> AST.KeywordMessage
 transformKeywordMessage (MkKeywordMessage kw binOp binMsgs) =
-  let
-    primary = transformBinaryOperand binOp
-    binary = foldBinaryMessage primary binMsgs
-  in AST.MkKeywordMessage kw binary
+  let primary = transformBinaryOperand binOp
+      binary = foldBinaryMessage primary binMsgs
+   in AST.MkKeywordMessage kw binary
 
 transformKeywordCall :: AST.Expression -> [KeywordMessage] -> AST.Expression
 transformKeywordCall primary kws =
   case map transformKeywordMessage kws of
     [] -> primary
-    (x:xs) -> AST.KeywordCall primary (x :| xs)
+    (x : xs) -> AST.KeywordCall primary (x :| xs)
 
 transformLiteral :: Literal -> AST.Literal
 transformLiteral (LArray arr) = AST.LArray $ map transformLiteral arr
 transformLiteral (LSymbol sym) = AST.LSymbol sym
 transformLiteral (LString str) = AST.LString str
-transformLiteral (LNumber num) = either AST.LInteger AST.LDouble
-                               $ transformNumber num
+transformLiteral (LNumber num) =
+  either AST.LInteger AST.LDouble $
+    transformNumber num
 
 transformNumber :: Number -> Either Int Double
-transformNumber (NInteger n) = Left  n
+transformNumber (NInteger n) = Left n
 transformNumber (NDouble n) = Right n
 transformNumber (NMinus n) = Bf.bimap negate negate $ transformNumber n
 
 transformNestedBlock :: NestedBlock -> AST.NestedBlock
 transformNestedBlock (MkNestedBlock args content) = AST.MkNestedBlock args block
-  where block = transformBlock content
+  where
+    block = transformBlock content

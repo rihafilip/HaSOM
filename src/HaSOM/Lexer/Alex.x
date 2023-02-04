@@ -1,5 +1,6 @@
 {
-module HaSOM.Lexer.Alex where
+-- | Alex generated lexer
+module HaSOM.Lexer.Alex(alexScanTokens) where
 
 import HaSOM.Lexer.Token
 }
