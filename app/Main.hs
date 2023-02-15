@@ -3,6 +3,7 @@ module Main (main) where
 import HaSOM.Parser.Happy
 import HaSOM.Lexer.Alex
 import System.Environment (getArgs)
+import HaSOM.AST.PrettyPrint (prettyPrintAST)
 
 main :: IO ()
 main = getArgs >>= mapM_ lexAndParse
@@ -17,6 +18,6 @@ lexAndParse file = do
   putStrLn ""
 
   let ast = parse tokens
-  print ast
+  putStrLn $ prettyPrintAST ast
 
   putStrLn "--------------"

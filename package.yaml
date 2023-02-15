@@ -46,6 +46,7 @@ library:
   source-dirs: src
   dependencies:
   - array
+  - extensible-effects
 
 executables:
   HaSOM-exe:
