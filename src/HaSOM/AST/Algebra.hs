@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Definition of fold algebra for AST
@@ -45,7 +44,7 @@ data Algebra c m b e = MkAlgebra
 
 -- | Fold function to apply algebra to a Class
 fold :: forall c m b e. Algebra c m b e -> Class -> c
-fold MkAlgebra {clazz, method, block, exit, assign, unCall, binCall, variableExpr, kwCall, nestedBlock, literal} = fc
+fold MkAlgebra {..} = fc
   where
     mapm :: Functor f => f Method -> f m
     mapm = fmap fm
