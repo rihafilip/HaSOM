@@ -19,7 +19,6 @@ module HaSOM.AST
     KeywordMessage (..),
     NestedBlock (..),
     Literal (..),
-    Symbol (..),
   )
 where
 
@@ -92,15 +91,8 @@ data NestedBlock = MkNestedBlock [Variable] Block
 
 data Literal
   = LArray [Literal]
-  | LSymbol Symbol
+  | LSymbol String
   | LString String
   | LInteger Int
   | LDouble Double
-  deriving (Eq, Show)
-
-data Symbol
-  = Symbol String
-  | SUnSelector UnarySelector
-  | SBinSelector BinarySelector
-  | SKWSelector (NonEmpty Keyword)
   deriving (Eq, Show)

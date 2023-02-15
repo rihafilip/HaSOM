@@ -14,36 +14,38 @@ import Data.List.NonEmpty (NonEmpty(..))
 %tokentype { Token }
 
 %token
-  Primitive   { TPrimitive }
-  Identifier  { Identifier $$ }
-  Equal       { Equal }
-  Separator   { Separator }
-  NewTerm     { NewTerm }
-  EndTerm     { EndTerm }
-  Or          { Or }
-  Comma       { Comma }
-  Minus       { Minus }
-  Not         { Not }
-  And         { And }
-  Star        { Star }
-  Div         { Div }
-  Mod         { Mod }
-  Plus        { Plus }
-  More        { More }
-  Less        { Less }
-  At          { At }
-  Per         { Per }
-  Colon       { Colon }
-  NewBlock    { NewBlock }
-  EndBlock    { EndBlock }
-  Pound       { Pound }
-  Exit        { TExit }
-  Period      { Period }
-  Assign      { Assign }
-  Integer     { Integer $$ }
-  Double      { Double $$ }
-  Keyword     { Keyword $$ }
-  STString    { STString $$ }
+  Primitive         { TPrimitive }
+  Identifier        { Identifier $$ }
+  Equal             { Equal }
+  Separator         { Separator }
+  NewTerm           { NewTerm }
+  EndTerm           { EndTerm }
+  Or                { Or }
+  Comma             { Comma }
+  Minus             { Minus }
+  Not               { Not }
+  And               { And }
+  Star              { Star }
+  Div               { Div }
+  Mod               { Mod }
+  Plus              { Plus }
+  More              { More }
+  Less              { Less }
+  At                { At }
+  Per               { Per }
+  OperatorSequence  { OperatorSequence $$ }
+  Colon             { Colon }
+  NewBlock          { NewBlock }
+  EndBlock          { EndBlock }
+  Pound             { Pound }
+  Exit              { TExit }
+  Period            { Period }
+  Assign            { Assign }
+  Integer           { Integer $$ }
+  Double            { Double $$ }
+  Keyword           { Keyword $$ }
+  KeywordSequence   { KeywordSequence $$ }
+  STString          { STString $$ }
 
 %%
 
@@ -91,11 +93,7 @@ methodBlock : NewTerm blockContents EndTerm { Just $2 }
 unarySelector : identifier { $1 }
 
 binarySelector : operator { $1 }
-               | operatorSequence { $1 }
-
-operatorSequence : operator operatorSequenceStar { $1 ++ $2 }
-operatorSequenceStar : {- empty -} { "" }
-                     | operator operatorSequenceStar { $1 ++ $2 }
+               | OperatorSequence { $1 }
 
 operator : Or     { "|" }
          | Comma  { "," }
@@ -216,14 +214,13 @@ literalInteger : Integer { NInteger $1 }
 literalDouble : Double { NDouble $1 }
 
 {- inlined selector -}
-literalSymbol : Pound string          { AST.Symbol $2 }
-              | Pound binarySelector  { AST.SBinSelector $2 }
-              | Pound keywordSelector { AST.SKWSelector $2 }
-              | Pound unarySelector   { AST.SUnSelector $2 }
+literalSymbol : Pound string          { $2 }
+              | Pound binarySelector  { $2 }
+              | Pound keywordSelector { $2 }
+              | Pound unarySelector   { $2 }
 
-{- inlined KeywordSequence -}
-keywordSelector : Keyword { $1 <:| [] }
-                | keywordStar Keyword { $2 <:| $1 }
+keywordSelector : Keyword { $1 }
+                | KeywordSequence { $1 }
 
 keywordStar : {- empty -}         { [] }
             | keywordStar Keyword { $2 <:> $1 }

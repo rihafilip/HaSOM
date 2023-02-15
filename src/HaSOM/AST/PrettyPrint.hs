@@ -141,11 +141,7 @@ prettyPrintAlgerba = MkAlgebra {..}
     nestedBlock params bl = bracketMultiline "Block" [formatList params] bl
 
     literal (LArray lits) = bracketMultiline "Array" [] (mapM_ literal lits)
-    literal (LSymbol symbol) = case symbol of
-      Symbol s -> "Symbol" <#> s
-      SUnSelector s -> "UnarySelectorSymbol" <#> s
-      SBinSelector s -> "BinarySelectorSymbol" <#> s
-      SKWSelector s -> "KeywordSelectorSymbol" <#> formatList (NonEmpty.toList s)
+    literal (LSymbol symbol) = "Symbol" <#> symbol
     literal (LString str) = "String" <#> str
     literal (LInteger int) = "Integer" <#> show int
     literal (LDouble double) = "Integer" <#> show double

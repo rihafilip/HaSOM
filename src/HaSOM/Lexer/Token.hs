@@ -28,6 +28,8 @@ data Token
   | At
   | Per
 
+  | OperatorSequence String
+
   | Colon
 
   | NewBlock
@@ -42,6 +44,7 @@ data Token
   | Double Double
 
   | Keyword String
+  | KeywordSequence String
 
   | STString String
   deriving (Eq, Show)

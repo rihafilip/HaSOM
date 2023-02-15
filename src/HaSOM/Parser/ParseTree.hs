@@ -22,7 +22,7 @@ where
 
 import qualified Data.Bifunctor as Bf
 import Data.List.NonEmpty (NonEmpty)
-import HaSOM.AST (BinarySelector, Keyword, Symbol, UnarySelector, Variable)
+import HaSOM.AST (BinarySelector, Keyword, UnarySelector, Variable)
 import qualified HaSOM.AST as AST
 
 data Block = MkBlock
@@ -80,7 +80,7 @@ data Formula
 
 data Literal
   = LArray [Literal]
-  | LSymbol Symbol
+  | LSymbol String
   | LString String
   | LNumber Number
   deriving (Eq, Show)

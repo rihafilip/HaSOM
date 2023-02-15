@@ -16,7 +16,6 @@ tokens :-
   $white+ ;
 
   "primitive" { \_ -> TPrimitive }
-  $alpha [$alpha $digit _]* ":" { Keyword }
   $alpha [$alpha $digit _]* { Identifier }
 
   "=" { \_ -> Equal }
@@ -40,6 +39,8 @@ tokens :-
   "@"   { \_ -> At }
   "%"   { \_ -> Per }
 
+  ( "~" | "&" | "|" | "*" | "/" | "\\" | "+" | "=" | ">" | "<" | "," | "@" | "%" | "-")+ { OperatorSequence }
+
   ":"   { \_ -> Colon }
 
   "["   { \_ -> NewBlock }
@@ -52,6 +53,9 @@ tokens :-
 
   $digit+ { Integer . read }
   $digit+ "." $digit+ { Double . read }
+
+  $alpha [$alpha $digit _]* ":"    { Keyword }
+  ($alpha [$alpha $digit _]* ":")+ { KeywordSequence }
 
   "'" ($escaped | ~[\' \\])* "'" { STString }
 
