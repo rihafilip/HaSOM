@@ -28,6 +28,15 @@ ghc-options:
 - -Wmissing-home-modules
 - -Wpartial-fields
 - -Wredundant-constraints
+- -Wno-simplifiable-class-constraints
+
+default-extensions:
+- NamedFieldPuns
+- RecordWildCards
+- LambdaCase
+- TupleSections
+- TypeOperators
+- DataKinds
 
 build-tools:
   - alex
