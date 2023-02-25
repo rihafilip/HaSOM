@@ -49,6 +49,7 @@ library:
   - array
   - extensible-effects
   - text
+  - bytestring
 
 executables:
   HaSOM-exe:
@@ -61,6 +62,7 @@ executables:
     dependencies:
     - HaSOM
     - text
+    - bytestring
 
 tests:
   HaSOM-test:

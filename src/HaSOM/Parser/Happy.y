@@ -7,7 +7,7 @@ import qualified HaSOM.AST as AST
 import HaSOM.Lexer.Token
 
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Text (Text, pack)
+import Data.Text (Text)
 
 }
 
@@ -54,13 +54,13 @@ classdef :: { AST.Class }
 classdef  : Identifier Equal superclass instanceFields methodStar
             Separator classFields methodStar
             EndTerm
-            { AST.MkClass (pack $1) $3 $4 $5 $7 $8 }
+            { AST.MkClass $1 $3 $4 $5 $7 $8 }
           | Identifier Equal superclass instanceFields methodStar
             EndTerm
-            { AST.MkClass (pack $1) $3 $4 $5 [] [] }
+            { AST.MkClass $1 $3 $4 $5 [] [] }
 
 superclass :: { Maybe AST.Identifier }
-superclass : Identifier NewTerm { Just (pack $1) }
+superclass : Identifier NewTerm { Just $1 }
            | NewTerm            { Nothing }
 
 instanceFields :: { [AST.Variable] }
@@ -110,7 +110,7 @@ unarySelector : identifier { $1 }
 
 binarySelector :: { AST.BinarySelector }
 binarySelector : operator { $1 }
-               | OperatorSequence { pack $1 }
+               | OperatorSequence { $1 }
 
 operator :: { Text }
 operator : Or     { "|" }
@@ -130,10 +130,10 @@ operator : Or     { "|" }
 
 identifier :: { AST.Identifier }
 identifier : Primitive  { "primitive" }
-           | Identifier { pack $1 }
+           | Identifier { $1 }
 
 keyword :: { AST.Keyword }
-keyword : Keyword { pack $1 }
+keyword : Keyword { $1 }
 
 argument :: { AST.Variable }
 argument : variable { $1 }
@@ -278,18 +278,18 @@ literalSymbol : Pound string          { $2 }
               | Pound unarySelector   { $2 }
 
 keywordSelector :: { Text }
-keywordSelector : Keyword { pack $1 }
-                | KeywordSequence { pack $1 }
+keywordSelector : Keyword { $1 }
+                | KeywordSequence { $1 }
 
 keywordStar :: { [AST.Keyword] }
 keywordStar : {- empty -}         { [] }
-            | keywordStar Keyword { (pack $2) <:> $1 }
+            | keywordStar Keyword { $2 <:> $1 }
 
 literalString :: { Text }
 literalString : string { $1 }
 
 string :: { Text }
-string : STString { pack $1 }
+string : STString { $1 }
 
 nestedBlock :: { NestedBlock }
 nestedBlock : NewBlock blockPattern blockContents EndBlock

@@ -1,11 +1,13 @@
 -- | Definition of lexer tokens
 module HaSOM.Lexer.Token(Token(..)) where
 
+import Data.Text (Text)
+
 -- | SOM tokens
 data Token
   = -- | "primitive" string
     TPrimitive
-  | Identifier String
+  | Identifier Text
 
   | Equal
 
@@ -28,7 +30,7 @@ data Token
   | At
   | Per
 
-  | OperatorSequence String
+  | OperatorSequence Text
 
   | Colon
 
@@ -43,8 +45,8 @@ data Token
   | Integer Int
   | Double Double
 
-  | Keyword String
-  | KeywordSequence String
+  | Keyword Text
+  | KeywordSequence Text
 
-  | STString String
+  | STString Text
   deriving (Eq, Show)

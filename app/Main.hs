@@ -5,6 +5,7 @@ import HaSOM.Lexer.Alex
 import System.Environment (getArgs)
 import HaSOM.AST.PrettyPrint (prettyPrintAST)
 import qualified Data.Text.IO as T
+import qualified Data.ByteString.Lazy as B
 
 main :: IO ()
 main = getArgs >>= mapM_ lexAndParse
@@ -12,7 +13,7 @@ main = getArgs >>= mapM_ lexAndParse
 lexAndParse file = do
   putStrLn $ "File: " ++ file
 
-  content <- readFile file
+  content <- B.readFile file
   let tokens = alexScanTokens content
   mapM_ print tokens
 

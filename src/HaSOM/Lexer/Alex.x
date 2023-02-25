@@ -3,9 +3,11 @@
 module HaSOM.Lexer.Alex(alexScanTokens) where
 
 import HaSOM.Lexer.Token
+import HaSOM.Lexer.Alex.Parsing
+
 }
 
-%wrapper "basic"
+%wrapper "basic-bytestring"
 
 $digit = 0-9
 $alpha = [a-zA-Z]
@@ -16,7 +18,7 @@ tokens :-
   $white+ ;
 
   "primitive" { \_ -> TPrimitive }
-  $alpha [$alpha $digit _]* { Identifier }
+  $alpha [$alpha $digit _]* { Identifier . decode }
 
   "=" { \_ -> Equal }
 
@@ -39,7 +41,7 @@ tokens :-
   "@"   { \_ -> At }
   "%"   { \_ -> Per }
 
-  ( "~" | "&" | "|" | "*" | "/" | "\\" | "+" | "=" | ">" | "<" | "," | "@" | "%" | "-")+ { OperatorSequence }
+  ( "~" | "&" | "|" | "*" | "/" | "\\" | "+" | "=" | ">" | "<" | "," | "@" | "%" | "-")+ { OperatorSequence . decode }
 
   ":"   { \_ -> Colon }
 
@@ -51,13 +53,13 @@ tokens :-
   "."   { \_ -> Period }
   ":="  { \_ -> Assign }
 
-  $digit+ { Integer . read }
-  $digit+ "." $digit+ { Double . read }
+  $digit+ { Integer . parseInt }
+  $digit+ "." $digit+ { Double . parseDouble }
 
-  $alpha [$alpha $digit _]* ":"    { Keyword }
-  ($alpha [$alpha $digit _]* ":")+ { KeywordSequence }
+  $alpha [$alpha $digit _]* ":"    { Keyword . decode }
+  ($alpha [$alpha $digit _]* ":")+ { KeywordSequence . decode }
 
-  "'" ($escaped | ~[\' \\])* "'" { STString }
+  "'" ($escaped | ~[\' \\])* "'" { STString . decode }
 
 {
 
