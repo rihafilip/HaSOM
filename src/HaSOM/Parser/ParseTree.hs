@@ -24,6 +24,7 @@ import qualified Data.Bifunctor as Bf
 import Data.List.NonEmpty (NonEmpty)
 import HaSOM.AST (BinarySelector, Keyword, UnarySelector, Variable)
 import qualified HaSOM.AST as AST
+import qualified Data.Text as T
 
 data Block = MkBlock
   { localDefs :: [Variable],
@@ -80,8 +81,8 @@ data Formula
 
 data Literal
   = LArray [Literal]
-  | LSymbol String
-  | LString String
+  | LSymbol T.Text
+  | LString T.Text
   | LNumber Number
   deriving (Eq, Show)
 

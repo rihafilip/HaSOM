@@ -23,8 +23,9 @@ module HaSOM.AST
 where
 
 import Data.List.NonEmpty (NonEmpty)
+import qualified Data.Text as T
 
-type Identifier = String
+type Identifier = T.Text
 
 -------------------------------
 type Variable = Identifier
@@ -91,8 +92,8 @@ data NestedBlock = MkNestedBlock [Variable] Block
 
 data Literal
   = LArray [Literal]
-  | LSymbol String
-  | LString String
+  | LSymbol T.Text
+  | LString T.Text
   | LInteger Int
   | LDouble Double
   deriving (Eq, Show)

@@ -14,44 +14,45 @@ import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.Maybe (fromMaybe)
 import HaSOM.AST
 import HaSOM.AST.Algebra
+import qualified Data.Text as T
+import Data.Text (Text)
+import Data.Text.Utility ((<+))
 
-type IndentState r = Member (State Int) r
-
-type PrettyPrintEff r = [State Int, Writer String] <:: r
+type PrettyPrintEff r = [State Int, Writer Text] <:: r
 
 -----------------------------------------------
 
-prettyPrintAST :: Class -> String
+prettyPrintAST :: Class -> Text
 prettyPrintAST =
-  unlines
+  T.unlines
     . run
-    . execListWriter
+    . (execListWriter :: Eff (Writer Text : r) a -> Eff r [Text] )
     . evalState (0 :: Int)
     . fold prettyPrintAlgerba
 
 -----------------------------------------------
 
-indented :: IndentState r => Eff r () -> Eff r ()
+indented :: PrettyPrintEff r => Eff r () -> Eff r ()
 indented f = do
   (currIndent :: Int) <- get
   put (currIndent + 1)
   f
   put currIndent
 
-addLine :: PrettyPrintEff r => String -> Eff r ()
+addLine :: PrettyPrintEff r => Text -> Eff r ()
 addLine str = do
   (indentSize :: Int) <- get
-  let indentatiton = concat (replicate indentSize "  ")
-  tell $ indentatiton ++ str
+  let indentatiton = T.replicate indentSize "  "
+  tell $ indentatiton <+ str
 
-(.:) :: PrettyPrintEff r => String -> String -> Eff r ()
-name .: value = addLine (name ++ ": " ++ value)
+(.:) :: PrettyPrintEff r => Text -> Text -> Eff r ()
+name .: value = addLine (name <+ ": " <+ value)
 
 -----------------------------------------------
 
 -- | Print bracketed single line
-(<#>) :: PrettyPrintEff r => String -> String -> Eff r ()
-name <#> field = addLine $ "(" ++ name ++ " " ++ field ++ ")"
+(<#>) :: PrettyPrintEff r => Text -> Text -> Eff r ()
+name <#> field = addLine $ "(" <+ name <+ " " <+ field <+ ")"
 
 -- | Print bracketed multiline
 --
@@ -63,19 +64,19 @@ name <#> field = addLine $ "(" ++ name ++ " " ++ field ++ ")"
 --   ...
 -- )
 -- @
-bracketMultiline :: PrettyPrintEff r => String -> [String] -> Eff r () -> Eff r ()
+bracketMultiline :: PrettyPrintEff r => Text -> [Text] -> Eff r () -> Eff r ()
 bracketMultiline name fields subexpr = do
-  addLine $ "(" ++ name ++ " " ++ unwords fields
+  addLine $ "(" <+ name <+ " " <+ T.unwords fields
   indented subexpr
   addLine ")"
 
 -----------------------------------------------
 
-formatList :: [String] -> String
-formatList list = "[ " ++ unwords list ++ " ]"
+formatList :: [Text] -> Text
+formatList list = "[ " <+ T.unwords list <+ " ]"
 
-quote :: String -> String
-quote = ("\"" ++) . (++ "\"")
+quote :: Text -> Text
+quote = ("\"" <+) . (<+ "\"")
 
 -----------------------------------------------
 
@@ -143,5 +144,5 @@ prettyPrintAlgerba = MkAlgebra {..}
     literal (LArray lits) = bracketMultiline "Array" [] (mapM_ literal lits)
     literal (LSymbol symbol) = "Symbol" <#> symbol
     literal (LString str) = "String" <#> str
-    literal (LInteger int) = "Integer" <#> show int
-    literal (LDouble double) = "Integer" <#> show double
+    literal (LInteger int) = "Integer" <#> T.pack (show int)
+    literal (LDouble double) = "Integer" <#> T.pack (show double)

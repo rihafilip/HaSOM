@@ -37,6 +37,7 @@ default-extensions:
 - TupleSections
 - TypeOperators
 - DataKinds
+- OverloadedStrings
 
 build-tools:
   - alex
@@ -47,6 +48,7 @@ library:
   dependencies:
   - array
   - extensible-effects
+  - text
 
 executables:
   HaSOM-exe:
@@ -58,6 +60,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - HaSOM
+    - text
 
 tests:
   HaSOM-test:
