@@ -50,6 +50,7 @@ library:
   - extensible-effects
   - text
   - bytestring
+  - containers
 
 executables:
   HaSOM-exe:
