@@ -11,7 +11,7 @@ import HaSOM.VM.Primitive.VMArray
 data VMClass = MkVMClass {
   -- | Index of superclass or Nothing if superclass is nil
   superclass :: Maybe ClassIx,
-  methods :: Methods,
+  methods :: VMMethods,
   -- | Representation of class as object
   -- (class methods and class fields)
   object :: ObjIx,

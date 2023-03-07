@@ -1,10 +1,10 @@
 -- | VM Method definition
 module HaSOM.VM.Primitive.VMMethod
   ( -- * Method definition
-    Method (..),
+    VMMethod (..),
 
     -- * Methods collection definition
-    Methods,
+    VMMethods,
     newMethods,
     getMethod,
   )
@@ -16,7 +16,7 @@ import HaSOM.VM.Primitive.Ix (InsIx, SymbolIx)
 
 -- TODO Built-In
 -- | VM representation of SOM method
-data Method = MkVMMethod
+data VMMethod = MkVMMethod
   { -- | Start index in class code
     codeIdx :: InsIx,
     parameterCount :: Nat,
@@ -24,12 +24,12 @@ data Method = MkVMMethod
   }
 
 -- | Collection of methods
-newtype Methods = MkMethods (Map.Map SymbolIx Method)
+newtype VMMethods = MkVMMethods (Map.Map SymbolIx VMMethod)
 
 -- | Create new collection of methods
-newMethods :: [(SymbolIx, Method)] -> Methods
-newMethods = MkMethods . Map.fromList
+newMethods :: [(SymbolIx, VMMethod)] -> VMMethods
+newMethods = MkVMMethods . Map.fromList
 
 -- | Get a method from collection of methods
-getMethod :: Methods -> SymbolIx -> Maybe Method
-getMethod (MkMethods ms) = (`Map.lookup` ms)
+getMethod :: VMMethods -> SymbolIx -> Maybe VMMethod
+getMethod (MkVMMethods ms) = (`Map.lookup` ms)
