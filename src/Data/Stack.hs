@@ -64,8 +64,7 @@ top = fmap snd . pop
 reserve :: StackIx -> a -> Stack a -> Stack a
 reserve n x st@MkStack {stackData} = st {stackData = replicate n x ++ stackData}
 
--- | Get the item on given index. A positive index looks up from the indexing
--- bottom, while negative index looks bellow indexing bottom
+-- | Get the item on given index, indexing from bottom
 getAt :: StackIx -> Stack a -> Maybe a
 getAt idx MkStack {stackData} =
   maybeFromRight $ foldr f (Left idx) stackData
