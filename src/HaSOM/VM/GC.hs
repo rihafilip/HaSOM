@@ -1,35 +1,39 @@
+{-# LANGUAGE GADTs #-}
+
+-- | Polymorphic Garbage Collector definition
 module HaSOM.VM.GC
-  ( GC,
-    emptyGC,
-    nil,
-    new,
-    getAt,
-    setAt,
+  ( GCClass (..),
+    GC,
+    mkGC,
   )
 where
 
-import qualified Data.Map.Strict as Map
 import HaSOM.VM.Primitive
 
-data GC = MkGC
-  { objs :: Map.Map ObjIx VMObject,
-    nilObj :: VMObject
-  }
+-- | The base class used for defining GC
+class GCClass gc where
+  -- | Get a nil object
+  nil :: gc -> ObjIx
 
-emptyGC :: VMObject -> GC
-emptyGC nilObj = MkGC (0 `Map.singleton` nilObj) nilObj
+  -- | Create a new object, populate it with nil object
+  -- and return it's index
+  new :: gc -> (GC, ObjIx)
 
-nil :: GC -> ObjIx
-nil = const 0
+  -- | Get the object at given index
+  getAt :: gc -> ObjIx -> Maybe VMObject
 
-new :: GC -> (GC, ObjIx)
-new gc@MkGC {objs, nilObj} = (gc {objs = newObjs}, newIdx)
-  where
-    newIdx = Map.foldlWithKey (\a b _ -> a `max` b) 0 objs
-    newObjs = Map.insert (newIdx + 1) nilObj objs
+  -- | Set an object at given index
+  setAt :: gc -> ObjIx -> VMObject -> GC
 
-getAt :: GC -> ObjIx -> Maybe VMObject
-getAt = flip Map.lookup . objs
+-- | The polymorphic garbage collector type
+data GC = forall gc. GCClass gc => MkGC gc
 
-setAt :: GC -> ObjIx -> VMObject -> GC
-setAt gc@MkGC {objs} idx obj = gc {objs = Map.insert idx obj objs}
+-- | Wrap a garbage collector in polymorphic class
+mkGC :: GCClass gc => gc -> GC
+mkGC = MkGC
+
+instance GCClass GC where
+  nil (MkGC gc) = nil gc
+  new (MkGC gc) = new gc
+  getAt (MkGC gc) = getAt gc
+  setAt (MkGC gc) = setAt gc
