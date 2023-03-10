@@ -1,20 +1,11 @@
 -- | VM Class definition
-module HaSOM.VM.Primitive.VMClass(VMClass(..)) where
+module HaSOM.VM.Primitive.VMClass (VMClass (..)) where
 
-import HaSOM.Bytecode (Bytecode)
-import HaSOM.VM.Primitive.VMMethod
 import HaSOM.VM.Primitive.Ix
-import HaSOM.VM.Primitive.VMArray
+import HaSOM.VM.Primitive.VMMethod
 
--- TODO builtin
 -- | VM representation of SOM class
-data VMClass = MkVMClass {
-  -- | Index of superclass or Nothing if superclass is nil
-  superclass :: Maybe ClassIx,
-  methods :: VMMethods,
-  -- | Representation of class as object
-  -- (class methods and class fields)
-  object :: ObjIx,
-  -- | The executable bytecode
-  code :: VMArray Bytecode
-}
+data VMClass f = MkVMClass
+  { name :: SymbolIx,
+    methods :: VMMethods f
+  }

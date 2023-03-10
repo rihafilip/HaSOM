@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-partial-fields #-}
+
 -- | VM Method definition
 module HaSOM.VM.Primitive.VMMethod
   ( -- * Method definition
@@ -12,24 +14,29 @@ where
 
 import qualified Data.Map.Strict as Map
 import GHC.Base (Nat)
-import HaSOM.VM.Primitive.Ix (InsIx, SymbolIx)
+import HaSOM.VM.Primitive.Ix (SymbolIx)
+import HaSOM.VM.Primitive.VMArray (VMArray)
+import HaSOM.Bytecode ( Bytecode )
 
--- TODO Built-In
--- | VM representation of SOM method
-data VMMethod = MkVMMethod
-  { -- | Start index in class code
-    codeIdx :: InsIx,
-    parameterCount :: Nat,
-    localsCount :: Nat
-  }
+-- | VM representation of SOM method,
+-- polymorphic on native method type
+data VMMethod f
+  = -- | Method represented in bytecode
+    BytecodeMethod
+      { body :: VMArray Bytecode,
+        parameterCount :: Nat,
+        localsCount :: Nat
+      }
+  | -- | Method represented by Haskell function
+    NativeMethod f
 
 -- | Collection of methods
-newtype VMMethods = MkVMMethods (Map.Map SymbolIx VMMethod)
+newtype VMMethods f = MkVMMethods (Map.Map SymbolIx (VMMethod f))
 
 -- | Create new collection of methods
-newMethods :: [(SymbolIx, VMMethod)] -> VMMethods
+newMethods :: [(SymbolIx, VMMethod f)] -> VMMethods f
 newMethods = MkVMMethods . Map.fromList
 
 -- | Get a method from collection of methods
-getMethod :: VMMethods -> SymbolIx -> Maybe VMMethod
+getMethod :: VMMethods f -> SymbolIx -> Maybe (VMMethod f)
 getMethod (MkVMMethods ms) = (`Map.lookup` ms)
