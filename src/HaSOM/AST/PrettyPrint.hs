@@ -5,6 +5,8 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Eta reduce" #-}
+
+-- | Definition of pretty printing on AST
 module HaSOM.AST.PrettyPrint (prettyPrintAST) where
 
 import Control.Eff
@@ -22,6 +24,7 @@ type PrettyPrintEff r = [State Int, Writer Text] <:: r
 
 -----------------------------------------------
 
+-- | Pretty print Class
 prettyPrintAST :: Class -> Text
 prettyPrintAST =
   T.unlines

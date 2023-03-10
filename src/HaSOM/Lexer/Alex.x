@@ -1,4 +1,6 @@
 {
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+
 -- | Alex generated lexer
 module HaSOM.Lexer.Alex(alexScanTokens) where
 

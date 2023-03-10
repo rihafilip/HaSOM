@@ -1,3 +1,4 @@
+-- | Parsing helpers for Alex
 module HaSOM.Lexer.Alex.Parsing(decode, parseInt, parseDouble) where
 
 import Data.ByteString.Lazy (ByteString, toStrict)
@@ -9,12 +10,15 @@ import Data.Text.Encoding (decodeUtf8')
 import Data.Word (Word8)
 import GHC.Float (int2Double)
 
+-- | Turn Bytestring to Text
 decode :: ByteString -> Text
 decode = either (error . show) id . decodeUtf8' . toStrict
 
+-- | Parse Bytestring to Int
 parseInt :: ByteString -> Int
 parseInt = B.foldl addInt 0
 
+-- | Parse Bytestring to Double
 parseDouble :: ByteString -> Double
 parseDouble = put . B.foldl f (0.0, Nothing)
   where
