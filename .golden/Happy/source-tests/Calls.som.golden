@@ -1,0 +1,92 @@
+name: "Calls"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "foo"
+    (UnaryCall "f"
+      (Variable x)
+    )
+    (UnaryCall "h"
+      (UnaryCall "g"
+        (UnaryCall "f"
+          (Variable x)
+        )
+      )
+    )
+    (KeywordCall 
+      (Primary 
+        (Variable x)
+      )
+      (Keyword "f:"
+        (Variable a)
+      )
+      (Keyword "g:"
+        (Variable b)
+      )
+      (Keyword "h:"
+        (Variable c)
+      )
+    )
+    (KeywordCall 
+      (Primary 
+        (KeywordCall 
+          (Primary 
+            (Variable x)
+          )
+          (Keyword "f:"
+            (Variable a)
+          )
+          (Keyword "g:"
+            (Variable b)
+          )
+        )
+      )
+      (Keyword "h:"
+        (Variable c)
+      )
+    )
+    (KeywordCall 
+      (Primary 
+        (Variable x)
+      )
+      (Keyword "f:"
+        (KeywordCall 
+          (Primary 
+            (Variable a)
+          )
+          (Keyword "g:"
+            (Variable b)
+          )
+          (Keyword "h:"
+            (Variable c)
+          )
+        )
+      )
+    )
+    (BinaryCall "<>"
+      (Variable x)
+      (Variable y)
+    )
+    (BinaryCall "<>"
+      (BinaryCall "<>"
+        (Variable x)
+        (Variable y)
+      )
+      (Variable z)
+    )
+    (BinaryCall "<>"
+      (Variable x)
+      (BinaryCall "<>"
+        (Variable y)
+        (Variable z)
+      )
+    )
+    (BinaryCall "**<=>/|"
+      (Variable a)
+      (Variable b)
+    )
+  )
+class variables:
+  [  ]
+class methods:

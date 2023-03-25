@@ -1,0 +1,16 @@
+name: "UnaryMethod"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "foo"
+  )
+  (UnaryMethod "bar"
+  )
+class variables:
+  [  ]
+class methods:
+  (UnaryMethod "f"
+  )
+  (UnaryMethod "g"
+  )

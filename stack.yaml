@@ -7,7 +7,8 @@ packages:
 - .
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
-# extra-deps: []
+extra-deps:
+- dir-traverse-0.2.3.0
 
 # Control whether we use the GHC we find on the path
 # system-ghc: true

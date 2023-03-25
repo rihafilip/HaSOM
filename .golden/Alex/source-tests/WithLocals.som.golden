@@ -1,0 +1,26 @@
+Identifier "WithLocals"
+Equal
+NewTerm
+Identifier "a"
+Equal
+NewTerm
+Or
+Identifier "x"
+Identifier "y"
+Identifier "z"
+Or
+EndTerm
+Identifier "b"
+Equal
+NewTerm
+Or
+Or
+EndTerm
+Identifier "c"
+Equal
+NewTerm
+Or
+Identifier "l"
+Or
+EndTerm
+EndTerm

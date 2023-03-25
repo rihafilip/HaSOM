@@ -1,0 +1,8 @@
+name: "Empty"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+class variables:
+  [  ]
+class methods:

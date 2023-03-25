@@ -1,0 +1,7 @@
+KeywordMethod = (
+    kw: arg = ()
+
+    kw1: arg1 kw2: arg2 = ()
+
+    foo: bar Foo: Bar = ()
+)

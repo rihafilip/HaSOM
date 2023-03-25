@@ -1,0 +1,11 @@
+Identifier "Expressions"
+Equal
+NewTerm
+Identifier "foo"
+Equal
+NewTerm
+TExit
+Identifier "ret"
+Period
+EndTerm
+EndTerm

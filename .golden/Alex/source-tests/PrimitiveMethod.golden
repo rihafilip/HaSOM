@@ -1,0 +1,33 @@
+Identifier "PrimitiveMethod"
+Equal
+NewTerm
+Identifier "unary"
+Equal
+TPrimitive
+OperatorSequence "<>"
+Identifier "other"
+Equal
+TPrimitive
+OperatorSequence "=="
+Identifier "a"
+Equal
+TPrimitive
+Keyword "keyword:"
+Identifier "argument"
+Equal
+TPrimitive
+Keyword "keyword:"
+Identifier "argumet"
+Keyword "with:"
+Identifier "this"
+Equal
+TPrimitive
+Keyword "keyword:"
+Identifier "argumet"
+Keyword "with:"
+Identifier "this"
+Keyword "and:"
+Identifier "that"
+Equal
+TPrimitive
+EndTerm

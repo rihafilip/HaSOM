@@ -1,0 +1,24 @@
+name: "BinaryMethod"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (BinaryMethod "<>" a
+  )
+  (BinaryMethod "|-" b
+  )
+  (BinaryMethod "&*" c
+  )
+  (BinaryMethod "\/" d
+  )
+  (BinaryMethod "~+" e
+  )
+  (BinaryMethod "@%" f
+  )
+  (BinaryMethod "," g
+  )
+  (BinaryMethod ",,+," h
+  )
+class variables:
+  [  ]
+class methods:

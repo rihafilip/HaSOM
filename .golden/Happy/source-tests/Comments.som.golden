@@ -1,0 +1,19 @@
+name: "Comments"
+superclass: "Superclass"
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "a"
+    (Variables [ a b c ])
+    (Return 
+      (Variable return)
+    )
+  )
+  (KeywordMethod 
+    (Keywords 
+      (f: f)
+    )
+  )
+class variables:
+  [  ]
+class methods:

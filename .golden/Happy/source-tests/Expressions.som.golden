@@ -1,0 +1,13 @@
+name: "Expressions"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "foo"
+    (Return 
+      (Variable ret)
+    )
+  )
+class variables:
+  [  ]
+class methods:

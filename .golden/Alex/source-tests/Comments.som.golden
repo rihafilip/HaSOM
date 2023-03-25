@@ -1,0 +1,22 @@
+Identifier "Comments"
+Equal
+Identifier "Superclass"
+NewTerm
+Identifier "a"
+Equal
+NewTerm
+Or
+Identifier "a"
+Identifier "b"
+Identifier "c"
+Or
+TExit
+Identifier "return"
+Period
+EndTerm
+Keyword "f:"
+Identifier "f"
+Equal
+NewTerm
+EndTerm
+EndTerm

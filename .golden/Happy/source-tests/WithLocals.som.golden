@@ -1,0 +1,16 @@
+name: "WithLocals"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "a"
+    (Variables [ x y z ])
+  )
+  (UnaryMethod "b"
+  )
+  (UnaryMethod "c"
+    (Variables [ l ])
+  )
+class variables:
+  [  ]
+class methods:

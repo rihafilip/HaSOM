@@ -1,0 +1,15 @@
+Calls = (
+    foo = (
+        x f.
+        x f g h.
+
+        x f: a g: b h: c.
+        (x f: a g: b) h: c.
+        x f: (a g: b h: c).
+
+        x <> y.
+        (x <> y <> z).
+        x <> (y <> z).
+        a **<=>/| b.
+    )
+)

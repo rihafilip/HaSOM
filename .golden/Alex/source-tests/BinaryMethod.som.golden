@@ -1,0 +1,44 @@
+Identifier "BinaryMethod"
+Equal
+NewTerm
+OperatorSequence "<>"
+Identifier "a"
+Equal
+NewTerm
+EndTerm
+OperatorSequence "|-"
+Identifier "b"
+Equal
+NewTerm
+EndTerm
+OperatorSequence "&*"
+Identifier "c"
+Equal
+NewTerm
+EndTerm
+OperatorSequence "\\/"
+Identifier "d"
+Equal
+NewTerm
+EndTerm
+OperatorSequence "~+"
+Identifier "e"
+Equal
+NewTerm
+EndTerm
+OperatorSequence "@%"
+Identifier "f"
+Equal
+NewTerm
+EndTerm
+Comma
+Identifier "g"
+Equal
+NewTerm
+EndTerm
+OperatorSequence ",,+,"
+Identifier "h"
+Equal
+NewTerm
+EndTerm
+EndTerm

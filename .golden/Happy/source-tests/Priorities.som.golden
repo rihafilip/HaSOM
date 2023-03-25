@@ -1,0 +1,45 @@
+name: "Priorities"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "foo"
+    (BinaryCall "+"
+      (Variable x)
+      (UnaryCall "unaryCall"
+        (Variable y)
+      )
+    )
+    (UnaryCall "unaryCall"
+      (BinaryCall "+"
+        (Variable x)
+        (Variable y)
+      )
+    )
+    (KeywordCall 
+      (Primary 
+        (UnaryCall "bar"
+          (UnaryCall "foo"
+            (Variable x)
+          )
+        )
+      )
+      (Keyword "baz:"
+        (BinaryCall "+"
+          (BinaryCall "+"
+            (Variable a)
+            (UnaryCall "println"
+              (Variable b)
+            )
+          )
+          (Integer 10)
+        )
+      )
+      (Keyword "foo1:"
+        (Variable f)
+      )
+    )
+  )
+class variables:
+  [  ]
+class methods:

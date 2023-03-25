@@ -1,0 +1,13 @@
+"This is a comment about class"
+
+Comments = "notASuperclass" Superclass (
+    "This method comment"
+    a = (
+        | a b "notC" c |
+        ^ "notAReturn" return.
+    )
+
+    f: f "keyword: argument" = ()
+)
+
+"Comment after class"

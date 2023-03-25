@@ -1,0 +1,7 @@
+Priorities = (
+    foo = (
+        x + y unaryCall.
+        (x + y) unaryCall.
+        x foo bar baz: a + b println + 10 foo1: f.
+    )
+)

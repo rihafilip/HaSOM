@@ -1,0 +1,25 @@
+name: "KeywordMethod"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (KeywordMethod 
+    (Keywords 
+      (kw: arg)
+    )
+  )
+  (KeywordMethod 
+    (Keywords 
+      (kw1: arg1)
+      (kw2: arg2)
+    )
+  )
+  (KeywordMethod 
+    (Keywords 
+      (foo: bar)
+      (Foo: Bar)
+    )
+  )
+class variables:
+  [  ]
+class methods:

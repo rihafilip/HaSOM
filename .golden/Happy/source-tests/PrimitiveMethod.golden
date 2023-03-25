@@ -1,0 +1,38 @@
+name: "PrimitiveMethod"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "unary"
+    "primitive"
+  )
+  (BinaryMethod "<>" other
+    "primitive"
+  )
+  (BinaryMethod "==" a
+    "primitive"
+  )
+  (KeywordMethod 
+    (Keywords 
+      (keyword: argument)
+    )
+    "primitive"
+  )
+  (KeywordMethod 
+    (Keywords 
+      (keyword: argumet)
+      (with: this)
+    )
+    "primitive"
+  )
+  (KeywordMethod 
+    (Keywords 
+      (keyword: argumet)
+      (with: this)
+      (and: that)
+    )
+    "primitive"
+  )
+class variables:
+  [  ]
+class methods:

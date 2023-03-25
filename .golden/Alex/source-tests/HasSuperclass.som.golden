@@ -1,0 +1,5 @@
+Identifier "HasSuperclass"
+Equal
+Identifier "TheSuperclassName"
+NewTerm
+EndTerm

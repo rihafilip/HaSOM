@@ -1,0 +1,21 @@
+Identifier "UnaryMethod"
+Equal
+NewTerm
+Identifier "foo"
+Equal
+NewTerm
+EndTerm
+Identifier "bar"
+Equal
+NewTerm
+EndTerm
+Separator
+Identifier "f"
+Equal
+NewTerm
+EndTerm
+Identifier "g"
+Equal
+NewTerm
+EndTerm
+EndTerm

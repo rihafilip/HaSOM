@@ -1,0 +1,8 @@
+name: "HasSuperclass"
+superclass: "TheSuperclassName"
+instance variables:
+  [  ]
+instance methods:
+class variables:
+  [  ]
+class methods:

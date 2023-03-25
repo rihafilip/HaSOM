@@ -1,0 +1,13 @@
+PrimitiveMethod = (
+    unary = primitive
+
+    <> other = primitive
+
+    == a = primitive
+
+    keyword: argument = primitive
+
+    keyword: argumet with: this = primitive
+
+    keyword: argumet with: this and: that = primitive
+)

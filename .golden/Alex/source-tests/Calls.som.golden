@@ -1,0 +1,68 @@
+Identifier "Calls"
+Equal
+NewTerm
+Identifier "foo"
+Equal
+NewTerm
+Identifier "x"
+Identifier "f"
+Period
+Identifier "x"
+Identifier "f"
+Identifier "g"
+Identifier "h"
+Period
+Identifier "x"
+Keyword "f:"
+Identifier "a"
+Keyword "g:"
+Identifier "b"
+Keyword "h:"
+Identifier "c"
+Period
+NewTerm
+Identifier "x"
+Keyword "f:"
+Identifier "a"
+Keyword "g:"
+Identifier "b"
+EndTerm
+Keyword "h:"
+Identifier "c"
+Period
+Identifier "x"
+Keyword "f:"
+NewTerm
+Identifier "a"
+Keyword "g:"
+Identifier "b"
+Keyword "h:"
+Identifier "c"
+EndTerm
+Period
+Identifier "x"
+OperatorSequence "<>"
+Identifier "y"
+Period
+NewTerm
+Identifier "x"
+OperatorSequence "<>"
+Identifier "y"
+OperatorSequence "<>"
+Identifier "z"
+EndTerm
+Period
+Identifier "x"
+OperatorSequence "<>"
+NewTerm
+Identifier "y"
+OperatorSequence "<>"
+Identifier "z"
+EndTerm
+Period
+Identifier "a"
+OperatorSequence "**<=>/|"
+Identifier "b"
+Period
+EndTerm
+EndTerm
