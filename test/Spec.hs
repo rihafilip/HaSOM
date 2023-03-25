@@ -1,3 +1,4 @@
+import qualified Combinator.Spec
 import qualified HaSOM.Lexer.Alex.Golden
 import qualified HaSOM.Parser.Happy.Golden
 import Test.Hspec (hspec)
@@ -7,6 +8,8 @@ main :: IO ()
 main = do
   testFiles <- loadTestFiles "source-tests"
   hspec $ do
+    Combinator.Spec.spec
+
     -- Golden tests
     sequenceTestFilesGolden
       testFiles
