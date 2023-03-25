@@ -11,25 +11,33 @@ where
 import qualified Data.Map.Strict as Map
 import HaSOM.VM.Primitive
 
-data GC = MkGC
-  { objs :: Map.Map ObjIx VMObject,
-    nilObj :: VMObject
+-- TODO as Array
+-- | Representation of garbage collector,
+-- parametrised by the native function type
+data GC f = MkGC
+  { heap :: Map.Map ObjIx (VMObject f),
+    nilObj :: VMObject f
   }
 
-emptyGC :: VMObject -> GC
+-- | Create a new empty GC with given nil object
+emptyGC :: VMObject f -> GC f
 emptyGC nilObj = MkGC (0 `Map.singleton` nilObj) nilObj
 
-nil :: GC -> ObjIx
+-- | Get the index of nil object
+nil :: GC f -> ObjIx
 nil = const 0
 
-new :: GC -> (GC, ObjIx)
-new gc@MkGC {objs, nilObj} = (gc {objs = newObjs}, newIdx)
+-- | Get a new object index, initializing it to nil
+new :: GC f -> (GC f, ObjIx)
+new gc@MkGC {heap, nilObj} = (gc {heap = newheap}, newIdx)
   where
-    newIdx = Map.foldlWithKey (\a b _ -> a `max` b) 0 objs
-    newObjs = Map.insert (newIdx + 1) nilObj objs
+    newIdx = Map.foldlWithKey (\a b _ -> a `max` b) 0 heap
+    newheap = Map.insert (newIdx + 1) nilObj heap
 
-getAt :: GC -> ObjIx -> Maybe VMObject
-getAt = flip Map.lookup . objs
+-- | Get the object at given index
+getAt :: GC f -> ObjIx -> Maybe (VMObject f)
+getAt = flip Map.lookup . heap
 
-setAt :: GC -> ObjIx -> VMObject -> GC
-setAt gc@MkGC {objs} idx obj = gc {objs = Map.insert idx obj objs}
+-- | Set the object at given index
+setAt :: GC f -> ObjIx -> VMObject f -> GC f
+setAt gc@MkGC {heap} idx obj = gc {heap = Map.insert idx obj heap}

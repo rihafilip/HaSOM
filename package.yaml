@@ -51,10 +51,9 @@ library:
   - text
   - bytestring
   - containers
-  other-modules:
-  - Combinator
-  - Data.Maybe.Utility
-  - Data.Text.Utility
+  - unordered-containers
+  - hashable
+  - vector
 
 executables:
   HaSOM-exe:

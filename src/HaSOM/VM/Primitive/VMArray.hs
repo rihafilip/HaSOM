@@ -2,27 +2,35 @@
 module HaSOM.VM.Primitive.VMArray
   ( -- * Data type representation
     VMArray,
+
+    -- * Construction
     newArray,
+    fromListArray,
 
     -- * Element manipulation
     getArray,
     setArray,
 
     -- * Array appending functions
+    appendArrayIx,
     appendArray,
-    appendArray',
   )
 where
 
 import Combinator ((...))
 import HaSOM.VM.Primitive.Ix (ArrayIx)
 
+-- TODO as Array
 -- | Type definition of the array
 newtype VMArray a = MkVMArray [a]
 
 -- | Create an empty array with given length and default item
 newArray :: ArrayIx -> a -> VMArray a
 newArray l x = MkVMArray (replicate l x)
+
+-- | Create an empty array from a list
+fromListArray :: [a] -> VMArray a
+fromListArray = MkVMArray
 
 -- | Get an element on given array index
 getArray :: VMArray a -> ArrayIx -> Maybe a
@@ -49,9 +57,9 @@ setArray (MkVMArray xs) idx element
 
 -- | Append an element to the back of the array,
 -- returning the modified array and the new elements index
-appendArray :: VMArray a -> a -> (VMArray a, ArrayIx)
-appendArray (MkVMArray xs) element = (MkVMArray (xs ++ [element]), length xs + 1)
+appendArrayIx :: VMArray a -> a -> (VMArray a, ArrayIx)
+appendArrayIx (MkVMArray xs) element = (MkVMArray (xs ++ [element]), length xs + 1)
 
--- | Same as appendArray, returning only the new array
-appendArray' :: VMArray a -> a -> VMArray a
-appendArray' = fst ... appendArray
+-- | Same as appendArrayIx, returning only the new array
+appendArray :: VMArray a -> a -> VMArray a
+appendArray = fst ... appendArrayIx

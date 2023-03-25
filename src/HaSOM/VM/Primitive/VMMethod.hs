@@ -13,23 +13,22 @@ module HaSOM.VM.Primitive.VMMethod
 where
 
 import qualified Data.Map.Strict as Map
-import GHC.Base (Nat)
 import HaSOM.VM.Primitive.Ix (SymbolIx)
-import HaSOM.VM.Primitive.VMArray (VMArray)
-import HaSOM.Bytecode ( Bytecode )
+import HaSOM.VM.Primitive.Bytecode (Code)
 
 -- | VM representation of SOM method,
 -- polymorphic on native method type
 data VMMethod f
   = -- | Method represented in bytecode
     BytecodeMethod
-      { body :: VMArray Bytecode,
-        parameterCount :: Nat,
-        localsCount :: Nat
+      { body :: Code,
+        parameterCount :: Int
+        -- localsCount :: Int
       }
   | -- | Method represented by Haskell function
     NativeMethod f
 
+-- TODO as HashMap
 -- | Collection of methods
 newtype VMMethods f = MkVMMethods (Map.Map SymbolIx (VMMethod f))
 
