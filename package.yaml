@@ -80,7 +80,9 @@ tests:
     - HaSOM
     - hspec
     - hspec-golden
+    - QuickCheck
     - bytestring
     - text
+    - random
     - directory
     - dir-traverse

@@ -24,6 +24,7 @@ import Data.Maybe.Utility (maybeFromRight)
 -- | Index in stack
 type StackIx = Int
 
+-- TODO as Vector
 -- | The type of indexed stack
 newtype Stack a = MkStack
   { stackData :: [a]
@@ -63,7 +64,7 @@ popSt = fmap fst . pop
 popn :: StackIx -> Stack a -> Maybe (Stack a)
 popn n st@MkStack {stackData}
   | n > length stackData = Nothing
-  | otherwise = Just st {stackData = take n stackData}
+  | otherwise = Just st {stackData = drop n stackData}
 
 -- | Same as pop, returning only the top item
 top :: Stack a -> Maybe a
