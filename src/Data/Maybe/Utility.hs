@@ -1,5 +1,5 @@
 -- | Helper functions on Maybe data type
-module Data.Maybe.Utility where
+module Data.Maybe.Utility(maybeFromLeft, maybeFromRight) where
 
 -- | Create a Maybe from Either on left
 maybeFromLeft :: Either a b -> Maybe a
