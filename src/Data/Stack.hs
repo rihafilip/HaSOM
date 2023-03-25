@@ -13,6 +13,7 @@ module Data.Stack
     top,
 
     -- * Indexed stack operations
+    size,
     reserve,
     getAt,
   )
@@ -67,6 +68,11 @@ popn n st@MkStack {stackData}
 -- | Same as pop, returning only the top item
 top :: Stack a -> Maybe a
 top = fmap snd . pop
+
+---------------------------------------
+
+size :: Stack a -> Int
+size = length . stackData
 
 ---------------------------------------
 
