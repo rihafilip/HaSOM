@@ -141,6 +141,7 @@ argument : variable { $1 }
 blockContents :: { Block }
 blockContents : Or localDefs Or blockBody { MkBlock $2 $4 }
               | blockBody                 { MkBlock [] $1 }
+              | Or localDefs Or           { MkBlock $2 EmptyBlockBody }
 
 localDefs :: { [AST.Variable] }
 localDefs : {- empty -}        { [] }

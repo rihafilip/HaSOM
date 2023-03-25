@@ -37,6 +37,7 @@ data Block = MkBlock
 data BlockBody
   = BlockBody Expression (Maybe BlockBody)
   | Exit Expression
+  | EmptyBlockBody
   deriving (Eq, Show)
 
 data Expression
@@ -111,6 +112,7 @@ transformBlockBody :: BlockBody -> [AST.Expression]
 transformBlockBody (BlockBody expr Nothing) = [transformExpression expr]
 transformBlockBody (BlockBody expr (Just body)) = transformExpression expr : transformBlockBody body
 transformBlockBody (Exit expr) = [AST.Exit $ transformExpression expr]
+transformBlockBody EmptyBlockBody = []
 
 transformExpression :: Expression -> AST.Expression
 transformExpression (Assignation vars eval) = AST.Assignation vars $ transformEvaluation eval
