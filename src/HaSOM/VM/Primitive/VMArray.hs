@@ -24,6 +24,12 @@ import HaSOM.VM.Primitive.Ix (ArrayIx)
 -- | Type definition of the array
 newtype VMArray a = MkVMArray [a]
 
+instance Show a => Show (VMArray a) where
+  show (MkVMArray xs) = show xs
+
+instance Eq a => Eq (VMArray a) where
+  (MkVMArray xs) == (MkVMArray ys) = xs == ys
+
 -- | Create an empty array with given length and default item
 newArray :: ArrayIx -> a -> VMArray a
 newArray l x = MkVMArray (replicate l x)
@@ -48,7 +54,7 @@ getArray (MkVMArray xs) idx
 -- | Set an element in given array index
 setArray :: VMArray a -> ArrayIx -> a -> Maybe (VMArray a)
 setArray (MkVMArray xs) idx element
-  | idx > length xs = Nothing
+  | idx < 0 || idx > length xs = Nothing
   | otherwise = Just $ MkVMArray $ zipWith f [0 ..] xs
   where
     f i x

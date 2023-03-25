@@ -28,6 +28,16 @@ newtype Stack a = MkStack
   { stackData :: [a]
   }
 
+---------------------------------------
+
+instance Show a => Show (Stack a) where
+  show = show . stackData
+
+instance Eq a => Eq (Stack a) where
+  (MkStack x) == (MkStack y) = x == y
+
+---------------------------------------
+
 -- | Create an empty stack
 emptyStack :: Stack a
 emptyStack = MkStack []
