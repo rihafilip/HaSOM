@@ -31,8 +31,8 @@ nil = const 0
 new :: GC a -> (GC a, ObjIx)
 new gc@MkGC {heap, nilObj} = (gc {heap = newheap}, newIdx)
   where
-    newIdx = Map.foldlWithKey (\a b _ -> a `max` b) 0 heap
-    newheap = Map.insert (newIdx + 1) nilObj heap
+    newIdx = (+1) $ Map.foldlWithKey (\a b _ -> a `max` b) 0 heap
+    newheap = Map.insert newIdx nilObj heap
 
 -- | Get the object at given index
 getAt :: GC a -> ObjIx -> Maybe a
