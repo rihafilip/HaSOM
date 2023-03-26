@@ -74,7 +74,7 @@ type CallStackEff r = Member (State CallStack) r
 type SymbolsEff r = Member (State Symbols) r
 
 -- | VM GC definition effect
-type GCEff r = Member (State (GC NativeFun)) r
+type GCEff r = Member (State (GC (VMObject NativeFun))) r
 
 -----------------------------------
 
@@ -84,7 +84,7 @@ type UniverseEff r =
     State Classes,
     State CallStack,
     State Symbols,
-    State (GC NativeFun),
+    State (GC (VMObject NativeFun)),
     ExcT
   ]
     <:: r
