@@ -8,6 +8,7 @@ import System.Random (Random)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
+import Control.Monad (zipWithM_)
 
 instance (Random a, Arbitrary a) => Arbitrary (VMArray a) where
   arbitrary = do
@@ -43,27 +44,27 @@ spec =
     prop "newArray returns Array filled with given element" prop_NewArray
     prop "appendArrayIx returns unique indices" prop_UniqueIx
 
-prop_FromListArrayCorrectElements :: [Int] -> Bool
+prop_FromListArrayCorrectElements :: [Int] -> Expectation
 prop_FromListArrayCorrectElements xs =
   let ar = fromListArray xs
-   in and $ zipWith (\el i -> getArray ar i == Just el) xs [0 ..]
+   in zipWithM_ (\el i -> getArray ar i `shouldBe` Just el) xs [0 ..]
 
-prop_Appending :: Int -> VMArray Int -> Bool
+prop_Appending :: Int -> VMArray Int -> Expectation
 prop_Appending el arr =
   let (arr1, _) = appendArrayIx arr el
       arr2 = appendArray arr el
-   in arr1 == arr2
+   in arr1 `shouldBe` arr2
 
-prop_NewArray :: Int -> Char -> Bool
-prop_NewArray count el = all (\ix -> Just el == getArray arr ix) [0..(count - 1)]
+prop_NewArray :: Int -> Char -> Expectation
+prop_NewArray count el = mapM_ (\ix -> Just el `shouldBe` getArray arr ix) [0..(count - 1)]
   where
     arr = newArray count el
 
-prop_UniqueIx :: [Int] -> VMArray Int -> Bool
+prop_UniqueIx :: [Int] -> VMArray Int -> Expectation
 prop_UniqueIx xs initArr =
-  let (res, _, _) = foldr f1 (True, [], initArr) xs
-      f1 x (b, indicies, arr) = (b' && b, newIx : indicies, arr')
+  let (res, _, _) = foldr f1 (pure (), [], initArr) xs
+      f1 x (expects, indicies, arr) = (ex >> expects, newIx : indicies, arr')
         where
           (arr', newIx) = appendArrayIx arr x
-          b' = newIx `notElem` indicies
+          ex = indicies `shouldNotContain` [newIx]
    in res

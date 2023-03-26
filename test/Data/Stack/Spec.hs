@@ -64,29 +64,29 @@ spec = describe "Stack data type" $ do
 
 ---------------------------------------------------------
 
-prop_PushPop :: Int -> Stack Int -> Bool
-prop_PushPop i st = pop (push i st) == Just (st, i)
+prop_PushPop :: Int -> Stack Int -> Expectation
+prop_PushPop i st = pop (push i st) `shouldBe` Just (st, i)
 
-prop_TopLast :: Int -> Stack Int -> Bool
-prop_TopLast i st = top (push i st) == Just i
+prop_TopLast :: Int -> Stack Int -> Expectation
+prop_TopLast i st = top (push i st) `shouldBe` Just i
 
-prop_TopAccess :: Stack Int -> Bool
+prop_TopAccess :: Stack Int -> Expectation
 prop_TopAccess st =
-  (fst <$> pop st) == popSt st
-    && (snd <$> pop st) == top st
+  ((fst <$> pop st) `shouldBe` popSt st)
+    >> ((snd <$> pop st) `shouldBe` top st)
 
-prop_PopNTimes :: Stack Int -> Bool
-prop_PopNTimes st = popn (size st) st == Just emptyStack
+prop_PopNTimes :: Stack Int -> Expectation
+prop_PopNTimes st = popn (size st) st `shouldBe` Just emptyStack
 
-prop_PopNId :: Stack Int -> Bool
-prop_PopNId st = popn 0 st == Just st
+prop_PopNId :: Stack Int -> Expectation
+prop_PopNId st = popn 0 st `shouldBe` Just st
 
-prop_ReserveSize :: Int -> Stack Int -> Bool
+prop_ReserveSize :: Int -> Stack Int -> Expectation
 prop_ReserveSize count st
-  | count >= 0 = (size st + count) == reservedSize
-  | otherwise = size st == reservedSize
+  | count >= 0 = (size st + count) `shouldBe` reservedSize
+  | otherwise = size st `shouldBe` reservedSize
   where
     reservedSize = size (reserve count 0 st)
 
-prop_ReservePopnId :: Int -> Stack Int -> Bool
-prop_ReservePopnId count st = popn count (reserve count 0 st) == Just st
+prop_ReservePopnId :: Int -> Stack Int -> Expectation
+prop_ReservePopnId count st = popn count (reserve count 0 st) `shouldBe` Just st
