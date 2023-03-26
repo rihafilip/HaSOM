@@ -83,6 +83,5 @@ tests:
     - QuickCheck
     - bytestring
     - text
-    - random
     - directory
     - dir-traverse

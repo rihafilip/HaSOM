@@ -4,15 +4,14 @@
 module HaSOM.VM.Primitive.VMArray.Spec (spec) where
 
 import HaSOM.VM.Primitive.VMArray
-import System.Random (Random)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 import Control.Monad (zipWithM_)
 
-instance (Random a, Arbitrary a) => Arbitrary (VMArray a) where
+instance (Arbitrary a) => Arbitrary (VMArray a) where
   arbitrary = do
-    (x :: [a]) <- listOf chooseAny
+    (x :: [a]) <- listOf arbitrary
     pure (fromListArray x)
 
 exampleList :: [Int]

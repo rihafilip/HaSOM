@@ -4,15 +4,14 @@
 module HaSOM.VM.GC.Spec (spec) where
 
 import HaSOM.VM.GC
-import System.Random (Random)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
-instance (Random a, Arbitrary a) => Arbitrary (GC a) where
+instance (Arbitrary a) => Arbitrary (GC a) where
   arbitrary = do
-    (xs :: [a]) <- listOf chooseAny
-    (n :: a) <- chooseAny
+    (xs :: [a]) <- listOf arbitrary
+    (n :: a) <- arbitrary
     pure (foldr f (emptyGC n) xs)
     where
       f x = ($ x) . uncurry setAt . new

@@ -4,14 +4,13 @@
 module Data.Stack.Spec (spec) where
 
 import Data.Stack
-import System.Random (Random)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
 
-instance (Random a, Arbitrary a) => Arbitrary (Stack a) where
+instance (Arbitrary a) => Arbitrary (Stack a) where
   arbitrary = do
-    (x :: [a]) <- listOf chooseAny
+    (x :: [a]) <- listOf arbitrary
     pure (foldr push emptyStack x)
 
 ---------------------------------------------------------
