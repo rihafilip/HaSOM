@@ -6,16 +6,18 @@ import Data.Stack (StackIx)
 
 -- | Representation of SOM Bytecode
 data Bytecode
-  = PUSH_CLASS ClassIx
+  = HALT
   | PUSH_SYMBOL SymbolIx
   | PUSH_LOCAL StackIx
   | PUSH_FIELD FieldIx
+  | PUSH_GLOBAL GlobalIx
   | SET_LOCAL StackIx
   | SET_FIELD FieldIx
+  | SET_GLOBAL GlobalIx
   | CALL
   | SUPER_CALL
   | RETURN
-  | NONLOCAL_RETURN -- TODO
+  | NONLOCAL_RETURN
   deriving (Eq, Show)
 
-type Code = VMArray Bytecode
+type Code = VMArray InsIx Bytecode

@@ -23,7 +23,6 @@ data VMMethod f
     BytecodeMethod
       { body :: Code,
         parameterCount :: Int
-        -- localsCount :: Int
       }
   | -- | Method represented by Haskell function
     NativeMethod f

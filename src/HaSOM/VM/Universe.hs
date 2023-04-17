@@ -4,18 +4,24 @@
 
 -- | Definition of VM Universe
 module HaSOM.VM.Universe
-  ( -- * Call stack item
+  ( -- * TODO doc
+    VMObjectNat,
+    VMClassNat,
+    VMMethodNat,
+    VMGlobalsNat,
+
+    -- * Call stack item
     CallFrame (..),
 
     -- * Type definitions of VM data
     ObjStack,
-    Classes,
     CallStack,
     Symbols,
+    GCNat,
 
     -- * Universe effect definitions
     ObjStackEff,
-    ClassesEff,
+    GlobalsEff,
     CallStackEff,
     SymbolsEff,
     GCEff,
@@ -37,12 +43,29 @@ import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
 import HaSOM.VM.Primitive
 
+-----------------------------------
+
+type VMObjectNat = VMObject NativeFun
+
+type VMClassNat = VMClass NativeFun
+
+type VMMethodNat = VMMethod NativeFun
+
+type VMGlobalsNat = VMGlobals NativeFun
+
+type GCNat = GC VMObjectNat
+
+-----------------------------------
+
 -- | Call stack item
-data CallFrame f = MkCallFrame
+data CallFrame = MkCallFrame
   { stackOffset :: Int,
-    method :: VMMethod f,
+    method :: VMMethodNat,
     code :: Code,
-    pc :: Int
+    pc :: InsIx,
+    this :: ObjIx,
+    frameId :: Maybe Int,
+    capturedFrame :: Maybe CallFrame
   }
 
 -----------------------------------
@@ -50,14 +73,11 @@ data CallFrame f = MkCallFrame
 -- | VM Working stack
 type ObjStack = Stack ObjIx
 
--- | VM Classes definition
-type Classes = VMArray (VMClass NativeFun)
-
 -- | VM Call Stack
-type CallStack = NonEmpty (CallFrame NativeFun)
+type CallStack = NonEmpty CallFrame
 
 -- | VM Symbols definition
-type Symbols = VMArray VMSymbol
+type Symbols = VMArray SymbolIx VMSymbol
 
 -----------------------------------
 
@@ -65,7 +85,7 @@ type Symbols = VMArray VMSymbol
 type ObjStackEff r = Member (State ObjStack) r
 
 -- | VM Classes effect
-type ClassesEff r = Member (State Classes) r
+type GlobalsEff r = Member (State VMGlobalsNat) r
 
 -- | VM Call Stack effect
 type CallStackEff r = Member (State CallStack) r
@@ -74,17 +94,17 @@ type CallStackEff r = Member (State CallStack) r
 type SymbolsEff r = Member (State Symbols) r
 
 -- | VM GC definition effect
-type GCEff r = Member (State (GC (VMObject NativeFun))) r
+type GCEff r = Member (State GCNat) r
 
 -----------------------------------
 
 -- | Whole VM effect
 type UniverseEff r =
   [ State ObjStack,
-    State Classes,
+    State VMGlobalsNat,
     State CallStack,
     State Symbols,
-    State (GC (VMObject NativeFun)),
+    State GCNat,
     ExcT
   ]
     <:: r

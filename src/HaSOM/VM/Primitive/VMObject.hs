@@ -3,8 +3,7 @@
 
 -- | VM Object defintion
 module HaSOM.VM.Primitive.VMObject
-  ( -- * Types
-    VMClass (..),
+  ( -- * Type
     VMObject (..),
 
     -- * VMObject manipulation
@@ -16,58 +15,53 @@ where
 
 import Combinator
 import Data.Text (Text)
-import HaSOM.VM.Primitive.Bytecode (Code)
 import HaSOM.VM.Primitive.Ix
 import HaSOM.VM.Primitive.VMArray
-import HaSOM.VM.Primitive.VMMethod
+import HaSOM.VM.Primitive.VMBlock
+import HaSOM.VM.Primitive.VMClass
 
--- | Representation of SOM Class,
--- parametrised by native funciton type
-data VMClass f = MkVMClass
-  { fieldsCount :: Int,
-    superclass :: Maybe ClassIx,
-    asObject :: VMObject f,
-    methods :: VMMethods f
-  }
+type FieldArray = VMArray FieldIx ObjIx
 
 -- | Representation of SOM object,
 -- parametrised by native function type
 data VMObject f
   = InstanceObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx
+        fields :: FieldArray
+      }
+  | ClassObject
+      { clazz :: VMClass f,
+        fields :: FieldArray
       }
   | IntObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
+        fields :: FieldArray,
         intValue :: Int
       }
   | DoubleObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
+        fields :: FieldArray,
         doubleValue :: Double
       }
   | ArrayObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
-        arrayValue :: VMArray ObjIx
+        fields :: FieldArray,
+        arrayValue :: VMArray FieldIx ObjIx
       }
   | BlockObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
-        frame :: (), -- TODO
-        blockFieldsCount :: Int,
-        blockArgumentCount :: Int,
-        blockBody :: Code
+        fields :: FieldArray,
+        frameId :: Int,
+        block :: VMBlock
       }
   | StringObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
+        fields :: FieldArray,
         stringValue :: Text
       }
   | SymbolObject
       { clazz :: VMClass f,
-        fields :: VMArray ObjIx,
+        fields :: FieldArray,
         symbolValue :: Text
       }
 
@@ -76,11 +70,11 @@ newInstance :: VMClass f -> ObjIx -> VMObject f
 newInstance cl@MkVMClass {fieldsCount} nil = InstanceObject {clazz = cl, fields = newArray fieldsCount nil}
 
 -- | Set field in object
-setField :: VMObject f -> ArrayIx -> ObjIx -> Maybe (VMObject f)
+setField :: VMObject f -> FieldIx -> ObjIx -> Maybe (VMObject f)
 setField source =
   fmap (\newFields -> source {fields = newFields})
     ... setArray (fields source)
 
 -- | Get field object in object
-getField :: VMObject f -> ArrayIx -> Maybe ObjIx
+getField :: VMObject f -> FieldIx -> Maybe ObjIx
 getField = getArray . fields
