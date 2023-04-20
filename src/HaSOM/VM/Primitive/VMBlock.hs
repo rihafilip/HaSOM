@@ -5,7 +5,7 @@ import HaSOM.VM.Primitive.Bytecode (Code)
 -- | Representation of SOM Block,
 -- parametrised by native function type
 data VMBlock = MkVMBlock
-  { -- blockFieldsCount :: Int,
-    -- blockArgumentCount :: Int,
-    blockBody :: Code
+  { blockBody :: Code,
+    blockParameterCount :: Int,
+    blockLocalCount :: Int
   }
