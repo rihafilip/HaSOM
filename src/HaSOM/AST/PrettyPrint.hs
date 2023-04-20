@@ -2,25 +2,25 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonadComprehensions #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
 {-# HLINT ignore "Eta reduce" #-}
+{-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Definition of pretty printing on AST
 module HaSOM.AST.PrettyPrint (prettyPrintAST) where
 
-import Control.Eff
-import Control.Eff.State.Lazy
-import Control.Eff.Writer.Lazy
+import Control.Eff ( Eff, run, type (<::) )
+import Control.Eff.Reader.Strict
+import Control.Eff.Writer.Strict
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Utility ((<+))
 import HaSOM.AST
 import HaSOM.AST.Algebra
-import qualified Data.Text as T
-import Data.Text (Text)
-import Data.Text.Utility ((<+))
 
-type PrettyPrintEff r = [State Int, Writer Text] <:: r
+type PrettyPrintEff r = [Reader Int, Writer Text] <:: r
 
 -----------------------------------------------
 
@@ -29,22 +29,20 @@ prettyPrintAST :: Class -> Text
 prettyPrintAST =
   T.unlines
     . run
-    . (execListWriter :: Eff (Writer Text : r) a -> Eff r [Text] )
-    . evalState (0 :: Int)
+    . (execListWriter @Text)
+    . runReader (0 :: Int)
     . fold prettyPrintAlgerba
 
 -----------------------------------------------
 
 indented :: PrettyPrintEff r => Eff r () -> Eff r ()
 indented f = do
-  (currIndent :: Int) <- get
-  put (currIndent + 1)
-  f
-  put currIndent
+  (currIndent :: Int) <- ask
+  local (const $ currIndent + 1) f
 
 addLine :: PrettyPrintEff r => Text -> Eff r ()
 addLine str = do
-  (indentSize :: Int) <- get
+  (indentSize :: Int) <- ask
   let indentatiton = T.replicate indentSize "  "
   tell $ indentatiton <+ str
 
