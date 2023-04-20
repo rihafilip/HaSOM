@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | Collection of all indexing VM types
-module HaSOM.VM.Primitive.Ix
+module HaSOM.VM.Object.Ix
   ( ObjIx,
     InsIx,
     LiteralIx,

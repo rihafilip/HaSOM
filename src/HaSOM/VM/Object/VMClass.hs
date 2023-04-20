@@ -1,7 +1,7 @@
-module HaSOM.VM.Primitive.VMClass (VMClass (..), CoreClasses (..)) where
+module HaSOM.VM.Object.VMClass (VMClass (..), CoreClasses (..)) where
 
-import HaSOM.VM.Primitive.Ix (GlobalIx, ObjIx)
-import HaSOM.VM.Primitive.VMMethod (VMMethods)
+import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
+import HaSOM.VM.Object.VMMethod (VMMethods)
 
 -- | Representation of SOM Class,
 -- parametrised by native function type

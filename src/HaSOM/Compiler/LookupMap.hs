@@ -2,7 +2,7 @@ module HaSOM.Compiler.LookupMap where
 
 import qualified Data.HashMap.Strict as Map
 import Data.Hashable (Hashable)
-import HaSOM.VM.Primitive.Ix (VMIx (..))
+import HaSOM.VM.Object.Ix (VMIx (..))
 import Combinator ((...))
 
 data LookupMap i v = MkLookupMap

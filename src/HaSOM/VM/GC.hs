@@ -9,7 +9,7 @@ module HaSOM.VM.GC
 where
 
 import qualified Data.Map.Strict as Map
-import HaSOM.VM.Primitive
+import HaSOM.VM.Object
 
 -- TODO as Array
 -- | Representation of garbage collector,

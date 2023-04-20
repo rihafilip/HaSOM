@@ -21,7 +21,7 @@ import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.LookupMap
-import HaSOM.VM.Primitive
+import HaSOM.VM.Object
 import HaSOM.VM.Universe
 
 ------------------------------------------------------------

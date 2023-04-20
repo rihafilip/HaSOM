@@ -1,5 +1,5 @@
 -- | VM Array data type
-module HaSOM.VM.Primitive.VMArray
+module HaSOM.VM.Object.VMArray
   ( -- * Data type representation
     VMArray,
 
@@ -18,7 +18,7 @@ module HaSOM.VM.Primitive.VMArray
 where
 
 import Combinator ((...))
-import HaSOM.VM.Primitive.Ix (VMIx (getIx, ix))
+import HaSOM.VM.Object.Ix (VMIx (getIx, ix))
 
 -- TODO as Array
 -- | Type definition of the array,

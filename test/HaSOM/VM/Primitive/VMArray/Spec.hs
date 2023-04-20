@@ -1,9 +1,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module HaSOM.VM.Primitive.VMArray.Spec (spec) where
+module HaSOM.VM.Object.VMArray.Spec (spec) where
 
-import HaSOM.VM.Primitive.VMArray
+import HaSOM.VM.Object.VMArray
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck

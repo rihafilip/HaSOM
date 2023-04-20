@@ -1,7 +1,7 @@
 -- | VM Bytecode definition
-module HaSOM.VM.Primitive.Bytecode(Bytecode(..), Code) where
-import HaSOM.VM.Primitive.VMArray (VMArray)
-import HaSOM.VM.Primitive.Ix
+module HaSOM.VM.Object.Bytecode(Bytecode(..), Code) where
+import HaSOM.VM.Object.VMArray (VMArray)
+import HaSOM.VM.Object.Ix
 
 -- | Representation of SOM Bytecode
 data Bytecode

@@ -41,7 +41,7 @@ import Control.Eff.State.Strict (State)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
-import HaSOM.VM.Primitive
+import HaSOM.VM.Object
 
 -----------------------------------
 

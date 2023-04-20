@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 -- | VM Method definition
-module HaSOM.VM.Primitive.VMMethod
+module HaSOM.VM.Object.VMMethod
   ( -- * Method definition
     VMMethod (..),
 
@@ -13,8 +13,8 @@ module HaSOM.VM.Primitive.VMMethod
 where
 
 import qualified Data.Map.Strict as Map
-import HaSOM.VM.Primitive.Ix (LiteralIx)
-import HaSOM.VM.Primitive.Bytecode (Code)
+import HaSOM.VM.Object.Ix (LiteralIx)
+import HaSOM.VM.Object.Bytecode (Code)
 
 -- | VM representation of SOM method,
 -- polymorphic on native method type

@@ -1,9 +1,9 @@
 -- | VM Literal definiton
-module HaSOM.VM.Primitive.VMLiteral (VMLiteral (..)) where
+module HaSOM.VM.Object.VMLiteral (VMLiteral (..)) where
 
 import Data.Hashable (Hashable (hashWithSalt))
 import Data.Text (Text)
-import HaSOM.VM.Primitive.VMBlock (VMBlock)
+import HaSOM.VM.Object.VMBlock (VMBlock)
 import Data.Text.Utility ((<+))
 
 -- | Representation of SOM literal

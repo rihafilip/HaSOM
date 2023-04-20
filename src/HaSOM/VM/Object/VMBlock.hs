@@ -1,6 +1,6 @@
-module HaSOM.VM.Primitive.VMBlock (VMBlock (..)) where
+module HaSOM.VM.Object.VMBlock (VMBlock (..)) where
 
-import HaSOM.VM.Primitive.Bytecode (Code)
+import HaSOM.VM.Object.Bytecode (Code)
 
 -- | Representation of SOM Block,
 -- parametrised by native function type

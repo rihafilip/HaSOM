@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module HaSOM.VM.Primitive.VMGlobal
+module HaSOM.VM.Object.VMGlobal
   ( -- * Types defintion
     VMGlobal (..),
     VMGlobals (..),
@@ -14,9 +14,9 @@ where
 
 import qualified Data.HashMap.Strict as Map
 import Data.Hashable (Hashable (hashWithSalt))
-import HaSOM.VM.Primitive.Ix (GlobalIx, getIx)
-import HaSOM.VM.Primitive.VMClass (VMClass)
-import HaSOM.VM.Primitive.VMObject (VMObject)
+import HaSOM.VM.Object.Ix (GlobalIx, getIx)
+import HaSOM.VM.Object.VMClass (VMClass)
+import HaSOM.VM.Object.VMObject (VMObject)
 
 -- | Representation of global object,
 -- parametrized by primitive function type

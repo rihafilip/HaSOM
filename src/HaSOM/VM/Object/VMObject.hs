@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 -- | VM Object defintion
-module HaSOM.VM.Primitive.VMObject
+module HaSOM.VM.Object.VMObject
   ( -- * Type
     VMObject (..),
 
@@ -15,23 +15,32 @@ where
 
 import Combinator
 import Data.Text (Text)
-import HaSOM.VM.Primitive.Ix
-import HaSOM.VM.Primitive.VMArray
-import HaSOM.VM.Primitive.VMBlock
-import HaSOM.VM.Primitive.VMClass
+import HaSOM.VM.Object.Ix
+import HaSOM.VM.Object.VMArray
+import HaSOM.VM.Object.VMBlock
+import HaSOM.VM.Object.VMClass
+import HaSOM.VM.Object.VMMethod (VMMethod)
 
 type FieldArray = VMArray FieldIx ObjIx
 
 -- | Representation of SOM object,
 -- parametrised by native function type
 data VMObject f
-  = InstanceObject
+  = -- Regular instances
+    InstanceObject
       { clazz :: VMClass f,
         fields :: FieldArray
       }
   | ClassObject
       { clazz :: VMClass f,
-        fields :: FieldArray
+        fields :: FieldArray,
+        classOf :: GlobalIx
+      }
+  | -- Primitives
+    BooleanObject
+      { clazz :: VMClass f,
+        fields :: FieldArray,
+        boolValue :: Int
       }
   | IntObject
       { clazz :: VMClass f,
