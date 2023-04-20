@@ -9,15 +9,13 @@ module HaSOM.VM.Universe
     VMClassNat,
     VMMethodNat,
     VMGlobalsNat,
-
-    -- * Call stack item
-    CallFrame (..),
+    GCNat,
+    CallFrameNat,
 
     -- * Type definitions of VM data
     ObjStack,
     CallStack,
     Literals,
-    GCNat,
 
     -- * Universe effect definitions
     ObjStackEff,
@@ -55,18 +53,7 @@ type VMGlobalsNat = VMGlobals NativeFun
 
 type GCNat = GC VMObjectNat
 
------------------------------------
-
--- | Call stack item
-data CallFrame = MkCallFrame
-  { stackOffset :: Int,
-    method :: VMMethodNat,
-    code :: Code,
-    pc :: InsIx,
-    this :: ObjIx,
-    frameId :: Maybe Int,
-    capturedFrame :: Maybe CallFrame
-  }
+type CallFrameNat = CallFrame NativeFun
 
 -----------------------------------
 
@@ -74,7 +61,7 @@ data CallFrame = MkCallFrame
 type ObjStack = Stack ObjIx
 
 -- | VM Call Stack
-type CallStack = NonEmpty CallFrame
+type CallStack = NonEmpty CallFrameNat
 
 -- | VM Symbols definition
 type Literals = VMArray LiteralIx VMLiteral

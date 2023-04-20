@@ -1,6 +1,7 @@
 -- | Re-exporting of all primitive VM types
 module HaSOM.VM.Object
   ( module HaSOM.VM.Object.Bytecode,
+    module HaSOM.VM.Object.CallFrame,
     module HaSOM.VM.Object.Ix,
     module HaSOM.VM.Object.VMArray,
     module HaSOM.VM.Object.VMBlock,
@@ -13,6 +14,7 @@ module HaSOM.VM.Object
 where
 
 import HaSOM.VM.Object.Bytecode
+import HaSOM.VM.Object.CallFrame
 import HaSOM.VM.Object.Ix
 import HaSOM.VM.Object.VMArray
 import HaSOM.VM.Object.VMBlock
