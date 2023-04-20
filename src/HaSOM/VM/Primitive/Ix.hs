@@ -5,7 +5,8 @@
 module HaSOM.VM.Primitive.Ix
   ( ObjIx,
     InsIx,
-    SymbolIx,
+    LiteralIx,
+    LocalIx,
     FieldIx,
     GlobalIx,
     VMIx (..),
@@ -19,7 +20,7 @@ newtype ObjIx = MkObjIx {getObjIx :: Int}
   deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
 
 -- | Unique symbol id
-newtype SymbolIx = MkSymbolIx {getSymbolIx :: Int}
+newtype LiteralIx = MkLiteralIx {getLiteralIx :: Int}
   deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
 
 ----------------------------------
@@ -29,6 +30,9 @@ newtype InsIx = MkInsIx {getInsIx :: Int}
   deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
 
 ----------------------------------
+
+newtype LocalIx = MkLocalIx {getLocalIx :: Int}
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
 
 -- | Index in field
 newtype FieldIx = MkFieldIx {getFieldIx :: Int}
@@ -49,9 +53,9 @@ instance VMIx ObjIx where
   ix = MkObjIx
   getIx = getObjIx
 
-instance VMIx SymbolIx where
-  ix = MkSymbolIx
-  getIx = getSymbolIx
+instance VMIx LiteralIx where
+  ix = MkLiteralIx
+  getIx = getLiteralIx
 
 instance VMIx InsIx where
   ix = MkInsIx
@@ -64,3 +68,7 @@ instance VMIx FieldIx where
 instance VMIx GlobalIx where
   ix = MkGlobalIx
   getIx = getGlobalIx
+
+instance VMIx LocalIx where
+  ix = MkLocalIx
+  getIx = getLocalIx

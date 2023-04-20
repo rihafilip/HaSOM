@@ -16,14 +16,14 @@ module HaSOM.VM.Universe
     -- * Type definitions of VM data
     ObjStack,
     CallStack,
-    Symbols,
+    Literals,
     GCNat,
 
     -- * Universe effect definitions
     ObjStackEff,
     GlobalsEff,
     CallStackEff,
-    SymbolsEff,
+    LiteralEff,
     GCEff,
     UniverseEff,
 
@@ -77,7 +77,7 @@ type ObjStack = Stack ObjIx
 type CallStack = NonEmpty CallFrame
 
 -- | VM Symbols definition
-type Symbols = VMArray SymbolIx VMSymbol
+type Literals = VMArray LiteralIx VMLiteral
 
 -----------------------------------
 
@@ -91,7 +91,7 @@ type GlobalsEff r = Member (State VMGlobalsNat) r
 type CallStackEff r = Member (State CallStack) r
 
 -- | VM Symbols definition effect
-type SymbolsEff r = Member (State Symbols) r
+type LiteralEff r = Member (State Literals) r
 
 -- | VM GC definition effect
 type GCEff r = Member (State GCNat) r
@@ -103,7 +103,7 @@ type UniverseEff r =
   [ State ObjStack,
     State VMGlobalsNat,
     State CallStack,
-    State Symbols,
+    State Literals,
     State GCNat,
     ExcT
   ]
