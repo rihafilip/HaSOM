@@ -26,7 +26,11 @@ data VMMethod f
         localCount :: Int
       }
   | -- | Method represented by Haskell function
-    NativeMethod f
+    NativeMethod {
+      nativeBody :: f,
+      parameterCount :: Int
+    }
+
 
 -- TODO as HashMap
 -- | Collection of methods

@@ -12,15 +12,14 @@ module HaSOM.VM.Object.VMGlobal
 where
 
 import qualified Data.HashMap.Strict as Map
-import HaSOM.VM.Object.Ix (GlobalIx)
+import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
 import HaSOM.VM.Object.VMClass (VMClass)
-import HaSOM.VM.Object.VMObject (VMObject)
 
 -- | Representation of global object,
 -- parametrized by primitive function type
 data VMGlobal f
   = ClassGlobal (VMClass f)
-  | ObjectGlobal (VMObject f)
+  | ObjectGlobal ObjIx
 
 -- | Representation of all global objects,
 -- parametrized by primitive function type
