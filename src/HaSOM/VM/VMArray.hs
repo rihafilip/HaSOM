@@ -1,19 +1,19 @@
 -- | VM Array data type
-module HaSOM.VM.Object.VMArray
+module HaSOM.VM.VMArray
   ( -- * Data type representation
     VMArray,
 
     -- * Construction
-    newArray,
-    fromListArray,
+    new,
+    fromList,
 
     -- * Element manipulation
-    getArray,
-    setArray,
+    get,
+    set,
 
     -- * Array appending functions
-    appendArrayIx,
-    appendArray,
+    appendIx,
+    append,
   )
 where
 
@@ -23,7 +23,7 @@ import HaSOM.VM.Object.Ix (VMIx (getIx, ix))
 -- TODO as Array
 -- | Type definition of the array,
 -- where i is the index type and a is the element type
-newtype VMArray i a  = MkVMArray [a]
+newtype VMArray i a = MkVMArray [a]
 
 instance Show a => Show (VMArray i a) where
   show (MkVMArray xs) = show xs
@@ -34,18 +34,18 @@ instance Eq a => Eq (VMArray i a) where
 ----------------------------------------------------------
 
 -- | Create an empty array with given length and default item
-newArray :: Int -> a -> VMArray i a
-newArray l x = MkVMArray (replicate l x)
+new :: Int -> a -> VMArray i a
+new l x = MkVMArray (replicate l x)
 
 -- | Create an empty array from a list
-fromListArray :: [a] -> VMArray i a
-fromListArray = MkVMArray
+fromList :: [a] -> VMArray i a
+fromList = MkVMArray
 
 ----------------------------------------------------------
 
 -- | Get an element on given array index
-getArray :: VMIx i => VMArray i a -> i -> Maybe a
-getArray (MkVMArray xs) idx
+get :: VMIx i => i -> VMArray i a -> Maybe a
+get idx (MkVMArray xs)
   | getIx idx < 0 = Nothing
   | otherwise =
       either (const Nothing) Just $
@@ -56,8 +56,8 @@ getArray (MkVMArray xs) idx
     go (Left i) _ = Left (i - 1)
 
 -- | Set an element in given array index
-setArray :: VMIx i => VMArray i a -> i -> a -> Maybe (VMArray i a)
-setArray (MkVMArray xs) idx element
+set :: VMIx i => i -> a -> VMArray i a -> Maybe (VMArray i a)
+set idx element (MkVMArray xs)
   | getIx idx < 0 || getIx idx > length xs = Nothing
   | otherwise = Just $ MkVMArray $ zipWith f [0 ..] xs
   where
@@ -69,9 +69,9 @@ setArray (MkVMArray xs) idx element
 
 -- | Append an element to the back of the array,
 -- returning the modified array and the new elements index
-appendArrayIx :: VMIx i => VMArray i a -> a -> (VMArray i a, i)
-appendArrayIx (MkVMArray xs) element = (MkVMArray (xs ++ [element]), ix (length xs + 1) )
+appendIx :: VMIx i => a -> VMArray i a -> (VMArray i a, i)
+appendIx element (MkVMArray xs) = (MkVMArray (xs ++ [element]), ix (length xs + 1))
 
 -- | Same as appendArrayIx, returning only the new array
-appendArray :: VMIx i => VMArray i a -> a -> VMArray i a
-appendArray = fst ... appendArrayIx
+append :: VMIx i => a -> VMArray i a -> VMArray i a
+append = fst ... appendIx

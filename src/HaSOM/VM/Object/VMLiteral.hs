@@ -1,10 +1,12 @@
 -- | VM Literal definiton
-module HaSOM.VM.Object.VMLiteral (VMLiteral (..)) where
+module HaSOM.VM.Object.VMLiteral (VMLiteral (..), VMLiterals, newLiterals, getLiteral, ) where
 
 import Data.Hashable (Hashable (hashWithSalt))
 import Data.Text (Text)
-import HaSOM.VM.Object.VMBlock (VMBlock)
 import Data.Text.Utility ((<+))
+import HaSOM.VM.Object.Ix
+import HaSOM.VM.Object.VMBlock (VMBlock)
+import qualified Data.HashMap.Strict as Map
 
 -- | Representation of SOM literal
 data VMLiteral
@@ -28,3 +30,10 @@ instance Eq VMLiteral where
   (SymbolLiteral a) == (SymbolLiteral b) = a == b
   _ == _ = False
 
+newtype VMLiterals = MkVMLiterals {runVMLiterals :: Map.HashMap LiteralIx VMLiteral}
+
+newLiterals :: [(LiteralIx, VMLiteral)] -> VMLiterals
+newLiterals = MkVMLiterals . Map.fromList
+
+getLiteral :: LiteralIx -> VMLiterals -> Maybe VMLiteral
+getLiteral idx = Map.lookup idx . runVMLiterals

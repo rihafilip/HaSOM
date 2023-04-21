@@ -37,5 +37,5 @@ newMethods :: [(LiteralIx, VMMethod f)] -> VMMethods f
 newMethods = MkVMMethods . Map.fromList
 
 -- | Get a method from collection of methods
-getMethod :: VMMethods f -> LiteralIx -> Maybe (VMMethod f)
-getMethod (MkVMMethods ms) = (`Map.lookup` ms)
+getMethod :: LiteralIx -> VMMethods f -> Maybe (VMMethod f)
+getMethod idx (MkVMMethods ms) = Map.lookup idx ms

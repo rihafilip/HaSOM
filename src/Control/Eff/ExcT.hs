@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-
+-- | Exception effect specialised to Text
 module Control.Eff.ExcT(ExcT, throwT, throwOnNothing) where
 
 import Control.Eff (Eff, Member)

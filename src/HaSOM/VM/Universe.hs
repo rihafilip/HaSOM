@@ -5,21 +5,22 @@
 -- | Definition of VM Universe
 module HaSOM.VM.Universe
   ( -- * TODO doc
-    VMObjectNat,
-    VMClassNat,
-    VMMethodNat,
-    VMGlobalsNat,
-    GCNat,
     CallFrameNat,
+    CallStackNat,
+    VMClassNat,
+    VMGlobalNat,
+    VMGlobalsNat,
+    VMMethodNat,
+    VMObjectNat,
+    GCNat,
 
     -- * Type definitions of VM data
     ObjStack,
-    CallStack,
-    Literals,
 
     -- * Universe effect definitions
     ObjStackEff,
     GlobalsEff,
+    CoreClassesEff,
     CallStackEff,
     LiteralEff,
     GCEff,
@@ -35,50 +36,57 @@ where
 import Control.Eff (Eff, type (<::))
 import Control.Eff.ExcT (ExcT)
 import Control.Eff.Extend (Member)
+import Control.Eff.Reader.Strict (Reader)
 import Control.Eff.State.Strict (State)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
 import HaSOM.VM.Object
 
 -----------------------------------
 
-type VMObjectNat = VMObject NativeFun
+-- Call stack
+type CallFrameNat = CallFrame NativeFun
 
+type CallStackNat = CallStack NativeFun
+
+-- Class
 type VMClassNat = VMClass NativeFun
 
-type VMMethodNat = VMMethod NativeFun
+-- Global
+type VMGlobalNat = VMGlobal NativeFun
 
 type VMGlobalsNat = VMGlobals NativeFun
 
-type GCNat = GC VMObjectNat
+-- Method
+type VMMethodNat = VMMethod NativeFun
 
-type CallFrameNat = CallFrame NativeFun
+-- Object
+type VMObjectNat = VMObject NativeFun
+
+-- GC
+type GCNat = GC VMObjectNat
 
 -----------------------------------
 
 -- | VM Working stack
 type ObjStack = Stack ObjIx
 
--- | VM Call Stack
-type CallStack = NonEmpty CallFrameNat
-
--- | VM Symbols definition
-type Literals = VMArray LiteralIx VMLiteral
-
 -----------------------------------
 
 -- | VM Working stack effect
 type ObjStackEff r = Member (State ObjStack) r
 
--- | VM Classes effect
+-- | VM Globals effect
 type GlobalsEff r = Member (State VMGlobalsNat) r
 
+-- | VM Core classes holder
+type CoreClassesEff r = Member (Reader CoreClasses) r
+
 -- | VM Call Stack effect
-type CallStackEff r = Member (State CallStack) r
+type CallStackEff r = Member (State CallStackNat) r
 
 -- | VM Symbols definition effect
-type LiteralEff r = Member (State Literals) r
+type LiteralEff r = Member (State VMLiterals) r
 
 -- | VM GC definition effect
 type GCEff r = Member (State GCNat) r
@@ -89,8 +97,9 @@ type GCEff r = Member (State GCNat) r
 type UniverseEff r =
   [ State ObjStack,
     State VMGlobalsNat,
-    State CallStack,
-    State Literals,
+    Reader CoreClasses,
+    State CallStackNat,
+    State VMLiterals,
     State GCNat,
     ExcT
   ]

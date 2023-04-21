@@ -1,5 +1,4 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-
+-- | VM Global definiton
 module HaSOM.VM.Object.VMGlobal
   ( -- * Types defintion
     VMGlobal (..),
@@ -13,8 +12,7 @@ module HaSOM.VM.Object.VMGlobal
 where
 
 import qualified Data.HashMap.Strict as Map
-import Data.Hashable (Hashable (hashWithSalt))
-import HaSOM.VM.Object.Ix (GlobalIx, getIx)
+import HaSOM.VM.Object.Ix (GlobalIx)
 import HaSOM.VM.Object.VMClass (VMClass)
 import HaSOM.VM.Object.VMObject (VMObject)
 
@@ -28,17 +26,14 @@ data VMGlobal f
 -- parametrized by primitive function type
 newtype VMGlobals f = MkVMGlobals {runGlobals :: Map.HashMap GlobalIx (VMGlobal f)}
 
-instance Hashable GlobalIx where
-  hashWithSalt = flip (hashWithSalt . getIx)
-
 -- | Create new globals from list
 newGlobals :: [(GlobalIx, VMGlobal f)] -> VMGlobals f
 newGlobals = MkVMGlobals . Map.fromList
 
 -- | Get global at index
-getGlobal :: VMGlobals f -> GlobalIx -> Maybe (VMGlobal f)
-getGlobal = flip Map.lookup . runGlobals
+getGlobal :: GlobalIx -> VMGlobals f -> Maybe (VMGlobal f)
+getGlobal idx = Map.lookup idx . runGlobals
 
 -- | Set global at index
-setGlobal :: VMGlobals f -> GlobalIx -> VMGlobal f -> VMGlobals f
-setGlobal (MkVMGlobals {runGlobals}) idx g = MkVMGlobals $ Map.insert idx g runGlobals
+setGlobal :: GlobalIx -> VMGlobal f -> VMGlobals f -> VMGlobals f
+setGlobal idx g = MkVMGlobals . Map.insert idx g . runGlobals

@@ -14,33 +14,34 @@ module HaSOM.VM.Object.Ix
 where
 
 import Data.Ix (Ix)
+import Data.Hashable (Hashable)
 
 -- | Unique object id
 newtype ObjIx = MkObjIx {getObjIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 -- | Unique symbol id
 newtype LiteralIx = MkLiteralIx {getLiteralIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 ----------------------------------
 
 -- | Instruction pointer
 newtype InsIx = MkInsIx {getInsIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 ----------------------------------
 
 newtype LocalIx = MkLocalIx {getLocalIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 -- | Index in field
 newtype FieldIx = MkFieldIx {getFieldIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 -- | Global symbols index
 newtype GlobalIx = MkGlobalIx {getGlobalIx :: Int}
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
+  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 ----------------------------------
 class VMIx ix where

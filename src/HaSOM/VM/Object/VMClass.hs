@@ -1,3 +1,4 @@
+-- | VM Class definiton
 module HaSOM.VM.Object.VMClass (VMClass (..), CoreClasses (..)) where
 
 import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
@@ -12,6 +13,7 @@ data VMClass f = MkVMClass
     methods :: VMMethods f
   }
 
+-- | Access of primitive classes
 data CoreClasses = MkCoreClasses
   { -- meta objects
     classClass :: GlobalIx,

@@ -20,8 +20,9 @@ import Data.Text (Text)
 import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
-import HaSOM.Compiler.LookupMap
-import HaSOM.VM.Object
+import HaSOM.Compiler.LookupMap (LookupMap)
+import qualified HaSOM.Compiler.LookupMap as LM
+import HaSOM.VM.Object hiding (locals, getLiteral)
 import HaSOM.VM.Universe
 
 ------------------------------------------------------------
@@ -33,11 +34,11 @@ data GlobalCtx = MkGlobalCtx
     primitives :: Map.HashMap (Text, Text) NativeFun
   }
 
-type Fields = Map.HashMap Text FieldIx
+type FieldsLookup = Map.HashMap Text FieldIx
 
 data ClassCtx = MkClassCtx
   { className :: Text,
-    fields :: Fields
+    fields :: FieldsLookup
   }
 
 data BlockCtx
@@ -53,10 +54,10 @@ data BlockCtx
 -- Context helpers
 
 methodCtx :: [Text] -> BlockCtx
-methodCtx = MethodCtx . fromListLM . ("self" :)
+methodCtx = MethodCtx . LM.fromList . ("self" :)
 
 nestedBlockCtx :: [Text] -> BlockCtx -> BlockCtx
-nestedBlockCtx = flip NestedBlockCtx . fromListLM . ("self" :)
+nestedBlockCtx = flip NestedBlockCtx . LM.fromList . ("self" :)
 
 isBlock :: Member (Reader BlockCtx) r => Eff r Bool
 isBlock =
@@ -68,14 +69,13 @@ isBlock =
 -- Compilation orchestration
 
 -- TODO primitives
-compile :: [AST.Class] -> GCNat -> (VMGlobalsNat, Literals, GCNat)
+compile :: [AST.Class] -> GCNat -> (VMGlobalsNat, VMLiterals, GCNat)
 compile = undefined -- TODO
   where
     partialClasses :: ClassEff r => [AST.Class] -> [ClassRes r]
     partialClasses = map (fold compileAlgebra)
 
     completeMap = undefined -- TODO
-
     fromPartial :: ClassEff r => Maybe Text -> PartialClass r -> Eff r CompleteClass
     fromPartial supername clazz =
       let fields = case supername of
@@ -100,9 +100,9 @@ data ClassRes r = MkClassRes
   }
 
 -- superfields ->
-type PartialClass r = ClassEff r => Fields -> ObjIx -> Eff r CompleteClass
+type PartialClass r = ClassEff r => FieldsLookup -> ObjIx -> Eff r CompleteClass
 
-type CompleteClass = (Fields, VMClassNat, VMObjectNat)
+type CompleteClass = (FieldsLookup, VMClassNat, VMObjectNat)
 
 -- Method
 type MethodEff r = [Reader ClassCtx, State GlobalCtx] <:: r
@@ -216,13 +216,13 @@ compileAlgebra = MkAlgebra {..}
     ---------------------------------------------------
     block vars es =
       -- Add local variables
-      local (\ctx -> ctx {locals = putAllLM (locals ctx) vars}) $ do
+      local (\ctx -> ctx {locals = LM.putAll vars (locals ctx)}) $ do
         -- compile block
         bc <-
           isBlock >>= \case
             False -> compileMethodBlock es
             True -> compileNestedBlock es
-        pure (length vars, fromListArray bc)
+        pure (length vars, code bc)
 
     ---------------------------------------------------
     -- Simple expressions
@@ -402,7 +402,7 @@ keywordsToText = foldl (<+) "" . fmap fst
 getLiteral :: Member (State GlobalCtx) r => VMLiteral -> Eff r LiteralIx
 getLiteral sym = do
   ctx@MkGlobalCtx {symbols} <- get
-  let (newSym, symIx) = getOrSetLM symbols sym
+  let (newSym, symIx) = LM.getOrSet sym symbols
   put (ctx {symbols = newSym})
   pure symIx
 
@@ -432,7 +432,7 @@ findVar = \case
 findGlobalVar :: Member (State GlobalCtx) r => Text -> Eff r GlobalIx
 findGlobalVar var = do
   ctx@MkGlobalCtx {globals} <- get
-  let (newGlobs, idx) = getOrSetLM globals var
+  let (newGlobs, idx) = LM.getOrSet var globals
   put (ctx {globals = newGlobs})
   pure idx
 
@@ -444,7 +444,7 @@ findClassVar var = do
 findBlockVar :: Member (Reader BlockCtx) r => Text -> Eff r (Maybe (LocalIx, LocalIx))
 findBlockVar var = findBlockPure <$> ask
   where
-    findBlockPure MethodCtx {locals} = (0,) <$> getLM locals var
+    findBlockPure MethodCtx {locals} = (0,) <$> LM.get var locals
     findBlockPure NestedBlockCtx {previous, locals} =
-      ((0,) <$> getLM locals var) -- current environment
+      ((0,) <$> LM.get var locals) -- current environment
         <|> (Bf.first (+ 1) <$> findBlockPure previous) -- higher environment

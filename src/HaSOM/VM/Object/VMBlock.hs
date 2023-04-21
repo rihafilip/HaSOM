@@ -1,3 +1,4 @@
+-- | VM Block definiton
 module HaSOM.VM.Object.VMBlock (VMBlock (..)) where
 
 import HaSOM.VM.Object.Bytecode (Code)

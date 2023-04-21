@@ -1,6 +1,7 @@
 -- | VM Bytecode definition
-module HaSOM.VM.Object.Bytecode(Bytecode(..), Code) where
-import HaSOM.VM.Object.VMArray (VMArray)
+module HaSOM.VM.Object.Bytecode(Bytecode(..), Code, code, getBytecode) where
+import HaSOM.VM.VMArray (VMArray)
+import qualified HaSOM.VM.VMArray as Arr
 import HaSOM.VM.Object.Ix
 
 -- | Representation of SOM Bytecode
@@ -21,4 +22,11 @@ data Bytecode
   | NONLOCAL_RETURN
   deriving (Eq, Show)
 
-type Code = VMArray InsIx Bytecode
+-- | Representation of
+newtype Code = MkCode { runCode :: VMArray InsIx Bytecode }
+
+code :: [Bytecode] -> Code
+code = MkCode . Arr.fromList
+
+getBytecode :: InsIx -> Code -> Maybe Bytecode
+getBytecode idx = Arr.get idx . runCode

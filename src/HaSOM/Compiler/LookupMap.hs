@@ -1,4 +1,4 @@
-module HaSOM.Compiler.LookupMap where
+module HaSOM.Compiler.LookupMap(LookupMap, new, fromList, get, getOrSet, putAll) where
 
 import qualified Data.HashMap.Strict as Map
 import Data.Hashable (Hashable)
@@ -10,21 +10,21 @@ data LookupMap i v = MkLookupMap
     nextIx :: v
   }
 
-newLM :: (VMIx v) => LookupMap i v
-newLM = MkLookupMap Map.empty (ix 0)
+new :: (VMIx v) => LookupMap i v
+new = MkLookupMap Map.empty (ix 0)
 
-fromListLM :: (VMIx v, Eq i, Hashable i, Enum v) => [i] -> LookupMap i v
-fromListLM = putAllLM newLM
+fromList :: (VMIx v, Eq i, Hashable i, Enum v) => [i] -> LookupMap i v
+fromList = (`putAll` new)
 
-getLM :: (Eq i, Hashable i) => LookupMap i v -> i -> Maybe v
-getLM (MkLookupMap {lookups}) key = Map.lookup key lookups
+get :: (Eq i, Hashable i) =>  i -> LookupMap i v -> Maybe v
+get key  (MkLookupMap {lookups}) = Map.lookup key lookups
 
-getOrSetLM :: (Eq i, Hashable i, Enum v) => LookupMap i v -> i -> (LookupMap i v, v)
-getOrSetLM m@(MkLookupMap {lookups, nextIx}) key = case Map.lookup key lookups of
+getOrSet :: (Eq i, Hashable i, Enum v) =>  i -> LookupMap i v -> (LookupMap i v, v)
+getOrSet key m@(MkLookupMap {lookups, nextIx}) = case Map.lookup key lookups of
   Nothing -> (MkLookupMap (Map.insert key nextIx lookups) (succ nextIx), nextIx)
   Just v -> (m, v)
 
-putAllLM :: (Eq i, Hashable i, Enum v) => LookupMap i v -> [i] -> LookupMap i v
-putAllLM = foldl f
+putAll :: (Eq i, Hashable i, Enum v) => [i] -> LookupMap i v -> LookupMap i v
+putAll = flip (foldr f)
   where
-    f = fst ... getOrSetLM
+    f = fst ... getOrSet

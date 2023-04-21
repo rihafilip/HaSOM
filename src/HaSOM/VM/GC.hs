@@ -1,6 +1,6 @@
 module HaSOM.VM.GC
   ( GC,
-    emptyGC,
+    empty,
     nil,
     new,
     getAt,
@@ -20,8 +20,8 @@ data GC a = MkGC
   }
 
 -- | Create a new empty GC with given nil object
-emptyGC :: a -> GC a
-emptyGC nilObj = MkGC (0 `Map.singleton` nilObj) nilObj
+empty :: a -> GC a
+empty nilObj = MkGC (0 `Map.singleton` nilObj) nilObj
 
 -- | Get the index of nil object
 nil :: GC a -> ObjIx
@@ -35,9 +35,9 @@ new gc@MkGC {heap, nilObj} = (gc {heap = newheap}, newIdx)
     newheap = Map.insert newIdx nilObj heap
 
 -- | Get the object at given index
-getAt :: GC a -> ObjIx -> Maybe a
-getAt = flip Map.lookup . heap
+getAt ::  ObjIx -> GC a -> Maybe a
+getAt idx = Map.lookup idx . heap
 
 -- | Set the object at given index
-setAt :: GC a -> ObjIx -> a -> GC a
-setAt gc@MkGC {heap} idx obj = gc {heap = Map.insert idx obj heap}
+setAt ::  ObjIx -> a -> GC a -> GC a
+setAt idx obj gc@MkGC {heap} = gc {heap = Map.insert idx obj heap}
