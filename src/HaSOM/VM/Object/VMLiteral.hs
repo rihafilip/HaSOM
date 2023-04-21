@@ -30,10 +30,13 @@ instance Eq VMLiteral where
   (SymbolLiteral a) == (SymbolLiteral b) = a == b
   _ == _ = False
 
+-- | Representation of all literals
 newtype VMLiterals = MkVMLiterals {runVMLiterals :: Map.HashMap LiteralIx VMLiteral}
 
+-- | Create new literals from list
 newLiterals :: [(LiteralIx, VMLiteral)] -> VMLiterals
 newLiterals = MkVMLiterals . Map.fromList
 
+-- | Get literal at index
 getLiteral :: LiteralIx -> VMLiterals -> Maybe VMLiteral
 getLiteral idx = Map.lookup idx . runVMLiterals

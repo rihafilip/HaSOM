@@ -13,7 +13,7 @@ data VMClass f = MkVMClass
     methods :: VMMethods f
   }
 
--- | Access of primitive classes
+-- | Collection of primitive classes
 data CoreClasses = MkCoreClasses
   { -- meta objects
     classClass :: GlobalIx,

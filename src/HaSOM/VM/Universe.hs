@@ -4,7 +4,7 @@
 
 -- | Definition of VM Universe
 module HaSOM.VM.Universe
-  ( -- * TODO doc
+  ( -- * Native function specialization of parametrized types
     CallFrameNat,
     CallStackNat,
     VMClassNat,
@@ -14,7 +14,7 @@ module HaSOM.VM.Universe
     VMObjectNat,
     GCNat,
 
-    -- * Type definitions of VM data
+    -- * Working stack definition
     ObjStack,
 
     -- * Universe effect definitions

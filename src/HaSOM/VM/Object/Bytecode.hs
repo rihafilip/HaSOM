@@ -22,11 +22,13 @@ data Bytecode
   | NONLOCAL_RETURN
   deriving (Eq, Show)
 
--- | Representation of
+-- | Representation of code block
 newtype Code = MkCode { runCode :: VMArray InsIx Bytecode }
 
+-- | Create a code block
 code :: [Bytecode] -> Code
 code = MkCode . Arr.fromList
 
+-- | Get an instruction from code block
 getBytecode :: InsIx -> Code -> Maybe Bytecode
 getBytecode idx = Arr.get idx . runCode

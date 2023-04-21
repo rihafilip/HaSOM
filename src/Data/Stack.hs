@@ -1,8 +1,10 @@
 -- | Stack data type
 module Data.Stack
-  ( -- * Stack definition
+  ( -- * Data type definition
     Stack,
     StackIx,
+
+    -- * Construction
     emptyStack,
 
     -- * Traditional stack operations
@@ -72,6 +74,7 @@ top = fmap snd . pop
 
 ---------------------------------------
 
+-- | Return the size of the stack
 size :: Stack a -> Int
 size = length . stackData
 

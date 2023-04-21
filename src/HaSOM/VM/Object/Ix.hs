@@ -13,8 +13,8 @@ module HaSOM.VM.Object.Ix
   )
 where
 
-import Data.Ix (Ix)
 import Data.Hashable (Hashable)
+import Data.Ix (Ix)
 
 -- | Unique object id
 newtype ObjIx = MkObjIx {getObjIx :: Int}
@@ -32,6 +32,7 @@ newtype InsIx = MkInsIx {getInsIx :: Int}
 
 ----------------------------------
 
+-- | Index in local variables
 newtype LocalIx = MkLocalIx {getLocalIx :: Int}
   deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
@@ -44,9 +45,16 @@ newtype GlobalIx = MkGlobalIx {getGlobalIx :: Int}
   deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord, Hashable)
 
 ----------------------------------
+
+-- | Uniformed way to access all Ix in this package
 class VMIx ix where
+  -- | Make an Ix from Int
   ix :: Int -> ix
+
+  -- | Extract Int from Ix
   getIx :: ix -> Int
+
+  -- | Change the type of Ix
   changeIx :: (VMIx ix') => ix -> ix'
   changeIx = ix . getIx
 

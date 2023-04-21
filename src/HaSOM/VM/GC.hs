@@ -1,3 +1,4 @@
+-- | Object garbage collector definition
 module HaSOM.VM.GC
   ( GC,
     empty,
