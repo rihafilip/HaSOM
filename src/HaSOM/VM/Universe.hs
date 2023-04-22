@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 
--- | Definition of VM Universe
+-- | Definition of VM Universe, specialization of types and effects
 module HaSOM.VM.Universe
   ( -- * Native function specialization of parametrized types
     CallFrameNat,
