@@ -1,15 +1,12 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
-{-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module HaSOM.Compiler (compile) where
 
-import Control.Applicative ((<|>))
 import Control.Eff
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
-import qualified Data.Bifunctor as Bf
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
 import Data.List (intercalate, singleton)
@@ -20,50 +17,10 @@ import Data.Text (Text)
 import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
-import HaSOM.Compiler.LookupMap (LookupMap)
 import qualified HaSOM.Compiler.LookupMap as LM
 import HaSOM.VM.Object hiding (locals, getLiteral)
 import HaSOM.VM.Universe
-
-------------------------------------------------------------
--- Compilation contexts
-
-data GlobalCtx = MkGlobalCtx
-  { globals :: LookupMap Text GlobalIx,
-    symbols :: LookupMap VMLiteral LiteralIx,
-    primitives :: Map.HashMap (Text, Text) NativeFun
-  }
-
-type FieldsLookup = Map.HashMap Text FieldIx
-
-data ClassCtx = MkClassCtx
-  { className :: Text,
-    fields :: FieldsLookup
-  }
-
-data BlockCtx
-  = MethodCtx
-      { locals :: LookupMap Text LocalIx
-      }
-  | NestedBlockCtx
-      { previous :: BlockCtx,
-        locals :: LookupMap Text LocalIx
-      }
-
-------------------------------------------------------------
--- Context helpers
-
-methodCtx :: [Text] -> BlockCtx
-methodCtx = MethodCtx . LM.fromList . ("self" :)
-
-nestedBlockCtx :: [Text] -> BlockCtx -> BlockCtx
-nestedBlockCtx = flip NestedBlockCtx . LM.fromList . ("self" :)
-
-isBlock :: Member (Reader BlockCtx) r => Eff r Bool
-isBlock =
-  ask <&> \case
-    MethodCtx {} -> False
-    NestedBlockCtx {} -> True
+import HaSOM.Compiler.Context
 
 ------------------------------------------------------------
 -- Compilation orchestration
@@ -105,18 +62,12 @@ type PartialClass r = ClassEff r => FieldsLookup -> ObjIx -> Eff r CompleteClass
 type CompleteClass = (FieldsLookup, VMClassNat, VMObjectNat)
 
 -- Method
-type MethodEff r = [Reader ClassCtx, State GlobalCtx] <:: r
-
 type MethodRes = Maybe (LiteralIx, VMMethodNat) -- Ix of method, compiled method
 
 -- Block
-type BlockEff r = [Reader ClassCtx, Reader BlockCtx, State GlobalCtx] <:: r
-
 type BlockRes = (Int, Code) -- Locals count, code
 
 -- Expression
-type ExprEff r = [Reader ClassCtx, Reader BlockCtx, State GlobalCtx] <:: r
-
 type ExprRes = (Bool, [Bytecode]) -- Is a super primary, code
 
 ------------------------------------------------------------
@@ -396,55 +347,3 @@ methodTypeParams (KeywordMethod kws) = NonEmpty.toList $ fmap snd kws
 keywordsToText :: NonEmpty (Keyword, a) -> Text
 keywordsToText = foldl (<+) "" . fmap fst
 
-------------------------------------------------------------
--- Literal resolving
-
-getLiteral :: Member (State GlobalCtx) r => VMLiteral -> Eff r LiteralIx
-getLiteral sym = do
-  ctx@MkGlobalCtx {symbols} <- get
-  let (newSym, symIx) = LM.getOrSet sym symbols
-  put (ctx {symbols = newSym})
-  pure symIx
-
-------------------------------------------------------------
--- Variable resolving
-
-data VarRes
-  = GlobalVar GlobalIx
-  | FieldVar FieldIx
-  | SuperVar FieldIx
-  | LocalVar LocalIx LocalIx -- EnvironmentIx, Local
-
-findVar :: ExprEff r => Text -> Eff r VarRes
-findVar = \case
-  "super" ->
-    findClassVar "self" >>= \case
-      Nothing -> error "self not found when looking for super"
-      Just fi -> pure $ SuperVar fi
-  var ->
-    findBlockVar var >>= \case
-      Just l -> pure $ uncurry LocalVar l
-      Nothing ->
-        findClassVar var >>= \case
-          Just f -> pure $ FieldVar f
-          Nothing -> GlobalVar <$> findGlobalVar var
-
-findGlobalVar :: Member (State GlobalCtx) r => Text -> Eff r GlobalIx
-findGlobalVar var = do
-  ctx@MkGlobalCtx {globals} <- get
-  let (newGlobs, idx) = LM.getOrSet var globals
-  put (ctx {globals = newGlobs})
-  pure idx
-
-findClassVar :: Member (Reader ClassCtx) r => Text -> Eff r (Maybe FieldIx)
-findClassVar var = do
-  MkClassCtx {fields} <- ask
-  pure (Map.lookup var fields)
-
-findBlockVar :: Member (Reader BlockCtx) r => Text -> Eff r (Maybe (LocalIx, LocalIx))
-findBlockVar var = findBlockPure <$> ask
-  where
-    findBlockPure MethodCtx {locals} = (0,) <$> LM.get var locals
-    findBlockPure NestedBlockCtx {previous, locals} =
-      ((0,) <$> LM.get var locals) -- current environment
-        <|> (Bf.first (+ 1) <$> findBlockPure previous) -- higher environment
