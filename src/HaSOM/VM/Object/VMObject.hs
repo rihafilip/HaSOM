@@ -57,12 +57,7 @@ data VMObject f
         classOf :: GlobalIx
       }
   | -- Primitives
-    BooleanObject
-      { clazz :: VMClass f,
-        fields :: Fields,
-        boolValue :: Int
-      }
-  | IntObject
+    IntObject
       { clazz :: VMClass f,
         fields :: Fields,
         intValue :: Int
