@@ -11,6 +11,9 @@ module HaSOM.VM.VMArray
     get,
     set,
 
+    -- * length function
+    length,
+
     -- * Array appending functions
     appendIx,
     append,
@@ -19,6 +22,8 @@ where
 
 import Combinator ((...))
 import HaSOM.VM.Object.Ix (VMIx (getIx, ix))
+import Prelude hiding (length)
+import qualified Prelude as P (length)
 
 -- TODO as Array
 -- | Type definition of the array,
@@ -58,7 +63,7 @@ get idx (MkVMArray xs)
 -- | Set an element in given array index
 set :: VMIx i => i -> a -> VMArray i a -> Maybe (VMArray i a)
 set idx element (MkVMArray xs)
-  | getIx idx < 0 || getIx idx > length xs = Nothing
+  | getIx idx < 0 || getIx idx > P.length xs = Nothing
   | otherwise = Just $ MkVMArray $ zipWith f [0 ..] xs
   where
     f i x
@@ -67,10 +72,15 @@ set idx element (MkVMArray xs)
 
 ----------------------------------------------------------
 
+length :: VMArray i a -> Int
+length (MkVMArray xs) = P.length xs
+
+----------------------------------------------------------
+
 -- | Append an element to the back of the array,
 -- returning the modified array and the new elements index
 appendIx :: VMIx i => a -> VMArray i a -> (VMArray i a, i)
-appendIx element (MkVMArray xs) = (MkVMArray (xs ++ [element]), ix (length xs + 1))
+appendIx element (MkVMArray xs) = (MkVMArray (xs ++ [element]), ix (P.length xs + 1))
 
 -- | Same as appendArrayIx, returning only the new array
 append :: VMIx i => a -> VMArray i a -> VMArray i a
