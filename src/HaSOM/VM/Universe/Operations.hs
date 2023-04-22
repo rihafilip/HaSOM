@@ -44,6 +44,12 @@ module HaSOM.VM.Universe.Operations
     -- ** Object creation
     newObject,
     newInstance,
+    newTrue,
+    newFalse,
+    newInt,
+    newDouble,
+    newString,
+    newSymbol,
 
     -- * Helper functions
     (<?>),
@@ -245,6 +251,36 @@ newObject idx constructor = do
 newInstance :: (GlobalsEff r, Member ExcT r, GCEff r) => GlobalIx -> Eff r VMObjectNat
 newInstance = flip newObject (\clazz fields -> InstanceObject {clazz, fields})
 
+newFalse :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Eff r VMObjectNat
+newFalse = do
+  MkCoreClasses {falseClass} <- ask
+  newInstance falseClass
+
+newTrue :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Eff r VMObjectNat
+newTrue = do
+  MkCoreClasses {trueClass} <- ask
+  newInstance trueClass
+
+newInt :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Int -> Eff r VMObjectNat
+newInt intValue = do
+  MkCoreClasses{integerClass} <- ask
+  newObject integerClass $ \clazz fields -> IntObject {clazz, fields, intValue}
+
+newDouble :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Double -> Eff r VMObjectNat
+newDouble doubleValue = do
+  MkCoreClasses{doubleClass} <- ask
+  newObject doubleClass $ \clazz fields -> DoubleObject {clazz, fields, doubleValue}
+
+newString :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Text -> Eff r VMObjectNat
+newString stringValue = do
+  MkCoreClasses{stringClass} <- ask
+  newObject stringClass $ \clazz fields -> StringObject {clazz, fields, stringValue}
+
+newSymbol :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Text -> Eff r VMObjectNat
+newSymbol symbolValue = do
+  MkCoreClasses{symbolClass} <- ask
+  newObject symbolClass $ \clazz fields -> SymbolObject {clazz, fields, symbolValue}
+
 ---------------------------------------------------------------
 
 -- [ self, arg1, arg2, ..., local1, local2, ... ]
@@ -263,4 +299,3 @@ createLocals self pCount lCount = do
           "Not enough parameters on stack"
             <?. St.pop
       mkArgs (n - 1) (idx : acc)
-

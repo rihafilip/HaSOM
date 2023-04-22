@@ -19,9 +19,6 @@ module HaSOM.VM.Universe.Instructions(
     doNonlocalReturn,
 ) where
 
-import Control.Eff
-import Control.Eff.ExcT
-import Control.Eff.Reader.Strict
 import Control.Monad (void)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
@@ -47,20 +44,13 @@ doPushLiteral :: UniverseEff r => LiteralIx -> Eff r ()
 doPushLiteral li = do
   lit <- getLiteralE li
 
-  MkCoreClasses {..} <- ask
-
   -- Create literal object
-  obj <- uncurry newObject $ case lit of
-    IntLiteral intValue ->
-      (integerClass, \clazz fields -> IntObject {clazz, fields, intValue})
-    DoubleLiteral doubleValue ->
-      (doubleClass, \clazz fields -> DoubleObject {clazz, fields, doubleValue})
-    StringLiteral stringValue ->
-      (stringClass, \clazz fields -> StringObject {clazz, fields, stringValue})
-    SymbolLiteral symbolValue ->
-      (symbolClass, \clazz fields -> SymbolObject {clazz, fields, symbolValue})
-    BlockLiteral vb ->
-      (blockClass, \clazz fields -> undefined) -- TODO
+  obj <- case lit of
+    IntLiteral value -> newInt value
+    DoubleLiteral value -> newDouble value
+    StringLiteral value -> newString value
+    SymbolLiteral value -> newSymbol value
+    BlockLiteral vb -> undefined -- TODO
 
   -- Push to GC
   idx <- addToGC obj
