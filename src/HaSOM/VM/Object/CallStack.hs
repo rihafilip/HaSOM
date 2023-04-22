@@ -3,21 +3,21 @@
 module HaSOM.VM.Object.CallStack (CallFrame (..), CallStack) where
 
 import qualified Data.Stack as St
-import HaSOM.VM.Object.Bytecode (Code)
 import HaSOM.VM.Object.Ix
 import HaSOM.VM.VMArray (VMArray)
+import HaSOM.VM.Object.VMMethod (VMMethod)
 
 -- | Call stack item,
 -- parametrised by native function type
 data CallFrame f
   = MethodCallFrame
-      { currentCode :: Either f Code,
+      { method :: VMMethod f,
         pc :: InsIx,
         locals :: VMArray LocalIx ObjIx,
         frameId :: Maybe Int
       }
   | BlockCallFrame
-      { currentCode :: Either f Code,
+      { method :: VMMethod f,
         pc :: InsIx,
         locals :: VMArray LocalIx ObjIx,
         capturedFrame :: CallFrame f

@@ -33,24 +33,24 @@ module HaSOM.VM.Universe.Operations
     setFieldE,
 
     -- ** GC
+    addToGC,
     getAsObject,
     setObject,
+    getNil,
 
-    -- * Instructions
-    doHalt,
-    doDup,
-    doPop,
-    doPushLiteral,
-    doPushLocal,
-    doPushField,
-    doPushGlobal,
-    doSetLocal,
-    doSetField,
-    doSetGlobal,
-    doCall,
-    doSupercall,
-    doReturn,
-    doNonlocalReturn,
+    -- ** Locals creation
+    createLocals,
+
+    -- ** Object creation
+    newObject,
+    newInstance,
+
+    -- * Helper functions
+    (<?>),
+    (<?.),
+    onIdxErrorMessage,
+    callErrorMessage,
+    callFrameEnvironmentErrorMessage,
 
     -- * Re-export of used effects
     module Control.Eff,
@@ -66,7 +66,6 @@ import Control.Eff.ExcT
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
 import Control.Eff.Utility
-import Control.Monad (void)
 import qualified Data.Stack as St
 import Data.Text (Text)
 import Data.Text.Utility
@@ -149,10 +148,10 @@ getCurrentCallFrame =
 pushCallFrame :: CallStackEff r => CallFrameNat -> Eff r ()
 pushCallFrame = modify . St.push
 
-popCallFrame :: (CallStackEff r, Member ExcT r) => Eff r ()
+popCallFrame :: (CallStackEff r, Member ExcT r) => Eff r CallFrameNat
 popCallFrame =
-  modifyEff @CallStackNat $
-    "Trying to pop empty call stack" <?. St.popSt
+  modifyEffYield @CallStackNat $
+    "Trying to pop empty call stack" <?. St.pop
 
 ---------------------------------------------------------------
 -- Locals manipulation
@@ -232,114 +231,8 @@ getAsObject idx = get >>= getter GC.getAt "Object" idx
 setObject :: GCEff r => ObjIx -> VMObjectNat -> Eff r ()
 setObject = modify ... GC.setAt
 
----------------------------------------------------------------
--- Simple operations
-
-doHalt :: Eff r ()
-doHalt = undefined -- TODO
-
-doDup :: (ObjStackEff r, Member ExcT r) => Eff r ()
-doDup = topStack >>= pushStack
-
-doPop :: (ObjStackEff r, Member ExcT r) => Eff r ()
-doPop = void popStack
-
----------------------------------------------------------------
--- Pushing on stack
-
-doPushLiteral :: UniverseEff r => LiteralIx -> Eff r ()
-doPushLiteral li = do
-  lit <- getLiteralE li
-
-  MkCoreClasses {..} <- ask
-
-  -- Create literal object
-  obj <- uncurry newObject $ case lit of
-    IntLiteral intValue ->
-      (integerClass, \clazz fields -> IntObject {clazz, fields, intValue})
-    DoubleLiteral doubleValue ->
-      (doubleClass, \clazz fields -> DoubleObject {clazz, fields, doubleValue})
-    StringLiteral stringValue ->
-      (stringClass, \clazz fields -> StringObject {clazz, fields, stringValue})
-    SymbolLiteral symbolValue ->
-      (symbolClass, \clazz fields -> SymbolObject {clazz, fields, symbolValue})
-    BlockLiteral vb ->
-      (blockClass, \clazz fields -> undefined) -- TODO
-
-  -- Push to GC
-  idx <- addToGC obj
-  pushStack idx
-
-doPushLocal :: (Member ExcT r, CallStackEff r, ObjStackEff r) => LocalIx -> LocalIx -> Eff r ()
-doPushLocal env li = getLocal env li >>= pushStack
-
-doPushField :: (CallStackEff r, GCEff r, Member ExcT r, ObjStackEff r) => FieldIx -> Eff r ()
-doPushField fi = getFieldE fi >>= pushStack
-
-doPushGlobal :: (ObjStackEff r, GlobalsEff r, Member ExcT r) => GlobalIx -> Eff r ()
-doPushGlobal gi = getGlobalE gi >>= pushStack . transform
-  where
-    transform (ClassGlobal MkVMClass {asObject}) = asObject
-    transform (ObjectGlobal oi) = oi
-
----------------------------------------------------------------
--- Setting values
-
-doSetLocal :: (CallStackEff r, ObjStackEff r, Member ExcT r) => LocalIx -> LocalIx -> Eff r ()
-doSetLocal env li = popStack >>= setLocal env li
-
-doSetField :: (ObjStackEff r, CallStackEff r, GCEff r, Member ExcT r) => FieldIx -> Eff r ()
-doSetField fi = popStack >>= setFieldE fi
-
-doSetGlobal :: (ObjStackEff r, GlobalsEff r, Member ExcT r) => GlobalIx -> Eff r ()
-doSetGlobal gi = popStack >>= setGlobalE gi . ObjectGlobal
-
----------------------------------------------------------------
--- Call
-
-doCall :: UniverseEff r => LiteralIx -> Eff r ()
-doCall li = do
-  thisIx <- popStack
-  clazz <- clazz <$> getAsObject thisIx
-  doCallUnified thisIx li clazz
-
-doSupercall :: UniverseEff r => LiteralIx -> Eff r ()
-doSupercall li = do
-  thisIx <- popStack
-  clazz <- clazz <$> getAsObject thisIx
-  superclass <-
-    (callErrorMessage li <?> superclass clazz)
-      >>= getClass
-
-  doCallUnified thisIx li superclass
-
-doCallUnified :: UniverseEff r => ObjIx -> LiteralIx -> VMClassNat -> Eff r ()
-doCallUnified thisIx li clazz = do
-  method <- findMethod li clazz >>= throwOnNothing (callErrorMessage li)
-
-  let (pCount, lCount, currentCode) = case method of
-        BytecodeMethod {body, parameterCount, localCount} -> (parameterCount, localCount, Right body)
-        NativeMethod {nativeBody, parameterCount} -> (parameterCount, 0, Left nativeBody)
-
-  localsL <- createLocals thisIx pCount lCount
-
-  let cf =
-        MethodCallFrame
-          { currentCode,
-            pc = 0,
-            locals = Arr.fromList localsL,
-            frameId = Nothing
-          }
-  pushCallFrame cf
-
----------------------------------------------------------------
--- Returning
-
-doReturn :: (CallStackEff r, Member ExcT r) => Eff r ()
-doReturn = popCallFrame
-
-doNonlocalReturn :: Eff r ()
-doNonlocalReturn = undefined -- TODO
+getNil :: GCEff r => Eff r ObjIx
+getNil = GC.nil <$> get @GCNat
 
 ---------------------------------------------------------------
 
@@ -348,6 +241,9 @@ newObject idx constructor = do
   clazz <- getClass idx
   n <- GC.nil <$> get @GCNat
   pure $ constructor clazz (newFields clazz n)
+
+newInstance :: (GlobalsEff r, Member ExcT r, GCEff r) => GlobalIx -> Eff r VMObjectNat
+newInstance = flip newObject (\clazz fields -> InstanceObject {clazz, fields})
 
 ---------------------------------------------------------------
 
@@ -368,11 +264,3 @@ createLocals self pCount lCount = do
             <?. St.pop
       mkArgs (n - 1) (idx : acc)
 
-findMethod :: (GlobalsEff r, Member ExcT r) => LiteralIx -> VMClassNat -> Eff r (Maybe VMMethodNat)
-findMethod litIx MkVMClass {methods, superclass} =
-  case (superclass, getMethod litIx methods) of
-    (_, Just m) -> pure $ Just m
-    (Just superIx, Nothing) -> do
-      super <- getClass superIx
-      findMethod litIx super
-    (Nothing, Nothing) -> pure Nothing
