@@ -3,7 +3,7 @@ import qualified Data.Stack.Spec
 import qualified HaSOM.Lexer.Alex.Golden
 import qualified HaSOM.Parser.Happy.Golden
 import qualified HaSOM.VM.GC.Spec
-import qualified HaSOM.VM.Object.VMArray.Spec
+import qualified HaSOM.VM.VMArray.Spec
 import Test.Hspec (hspec)
 import WithSources
 
@@ -13,7 +13,7 @@ main = do
   hspec $ do
     Combinator.Spec.spec
     Data.Stack.Spec.spec
-    HaSOM.VM.Object.VMArray.Spec.spec
+    HaSOM.VM.VMArray.Spec.spec
     HaSOM.VM.GC.Spec.spec
 
     -- Golden tests
