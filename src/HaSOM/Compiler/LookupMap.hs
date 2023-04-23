@@ -16,6 +16,10 @@ module HaSOM.Compiler.LookupMap
 
     -- * Batch manipulation
     putAll,
+
+    -- * Extraction
+    toList,
+    toHashMap,
   )
 where
 
@@ -55,3 +59,11 @@ putAll :: (Eq i, Hashable i, Enum v) => [i] -> LookupMap i v -> LookupMap i v
 putAll = flip (foldr f)
   where
     f = fst ... getOrSet
+
+-- | Transform the map to list
+toList :: LookupMap i v -> [(i, v)]
+toList = Map.toList . lookups
+
+-- | Extract the underlying HashMap
+toHashMap :: LookupMap i v -> Map.HashMap i v
+toHashMap = lookups
