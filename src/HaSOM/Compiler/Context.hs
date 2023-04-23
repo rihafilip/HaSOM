@@ -52,7 +52,8 @@ import HaSOM.VM.Universe (NativeFun)
 data GlobalCtx = MkGlobalCtx
   { globals :: LookupMap Text GlobalIx,
     symbols :: LookupMap VMLiteral LiteralIx,
-    primitives :: Map.HashMap (Text, Text) NativeFun
+    primitives :: Map.HashMap (Text, Text) NativeFun,
+    nilIx :: ObjIx
   }
 
 type FieldsLookup = Map.HashMap Text FieldIx

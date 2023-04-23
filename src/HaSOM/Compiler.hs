@@ -1,54 +1,144 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
-module HaSOM.Compiler (compile) where
+module HaSOM.Compiler (compile, CompilationResult(..)) where
 
 import Control.Eff
+import Control.Eff.ExcT
+import Control.Eff.Exception
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
+import Control.Eff.Utility
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
 import Data.List (intercalate, singleton)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.Text (Text)
 import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
-import qualified HaSOM.Compiler.LookupMap as LM
-import HaSOM.VM.Object hiding (locals, getLiteral)
-import HaSOM.VM.Universe
 import HaSOM.Compiler.Context
+import qualified HaSOM.Compiler.LookupMap as LM
+import qualified HaSOM.VM.GC as GC
+import HaSOM.VM.Object hiding (getLiteral, locals)
+import HaSOM.VM.Primitive (compilePrimitives)
+import HaSOM.VM.Primitive.Type (PrimitiveContainer)
+import HaSOM.VM.Universe
+import qualified Data.Bifunctor as Bf
+import Data.Tuple (swap)
 
 ------------------------------------------------------------
 -- Compilation orchestration
 
--- TODO primitives
-compile :: [AST.Class] -> GCNat -> (VMGlobalsNat, VMLiterals, GCNat)
-compile = undefined -- TODO
-  where
-    partialClasses :: ClassEff r => [AST.Class] -> [ClassRes r]
-    partialClasses = map (fold compileAlgebra)
+-- | Result of compilation
+data CompilationResult = MkCompilationResult
+  { globals :: VMGlobalsNat,
+    coreClasses :: CoreClasses,
+    literals :: VMLiterals,
+    gCollector :: GCNat,
+    globalsInterner :: Map.HashMap Text GlobalIx,
+    symbolsInterner :: Map.HashMap Text LiteralIx
+  }
 
-    completeMap = undefined -- TODO
-    fromPartial :: ClassEff r => Maybe Text -> PartialClass r -> Eff r CompleteClass
-    fromPartial supername clazz =
-      let fields = case supername of
-            Nothing -> Map.empty
-            Just n ->
-              fst $
-                fromMaybe (error "class not found") $
-                  Map.lookup n completeMap
-       in undefined -- TODO
+-- | Compile the ASTs
+compile :: [AST.Class] -> GCNat -> [PrimitiveContainer] -> Either Text CompilationResult
+compile asts gc prims =
+  fmap finish $
+    run $
+      runError @Text $
+        runState initGlobalCtx $
+          runState gc $ do
+            compilePrimitives prims
+            classes <- compileClasses asts
+            coreClasses <- compileCoreClasses
+            pure (classes, coreClasses)
+  where
+    initGlobalCtx = MkGlobalCtx {globals = LM.new, symbols = LM.new, primitives = Map.empty, nilIx = GC.nil gc}
+
+    finish (((classes, coreClasses), gCollector), MkGlobalCtx {globals, symbols}) =
+      MkCompilationResult
+        { globals = newGlobals $ map (Bf.second ClassGlobal) classes,
+          coreClasses,
+          literals = newLiterals $ map swap $ LM.toList symbols,
+          gCollector,
+          globalsInterner = LM.toHashMap globals,
+          symbolsInterner = Map.fromList $ mapMaybe extractSymbol $ LM.toList symbols
+        }
+    extractSymbol (SymbolLiteral s, v) = Just (s, v)
+    extractSymbol _ = Nothing
+
+compileClasses :: forall r. (ClassEff r, Member ExcT r, GCEff r) => [AST.Class] -> Eff r [(GlobalIx, VMClassNat)]
+compileClasses asts = map (\(_, (_, idx, clazz)) -> (idx, clazz)) . Map.toList <$> completeMap
+  where
+    partialClasses :: [ClassRes r]
+    partialClasses = map (fold compileAlgebra) asts
+
+    completeMap :: Eff r (Map.HashMap Text (FieldsLookup, GlobalIx, VMClassNat))
+    completeMap = Map.fromList . concat <$> mapM fromPartial partialClasses
+
+    fromPartial :: ClassRes r -> Eff r [(Text, (FieldsLookup, GlobalIx, VMClassNat))]
+    fromPartial MkClassRes {name, supername = mSupername, partialInstanceClass, partialClassClass} = do
+      cmap <- completeMap
+
+      classObjIx <- modifyYield @GCNat GC.new
+      metaclassObjIx <- modifyYield @GCNat GC.new
+
+      -- TODO throws
+      lookupClass <- case mSupername of
+        Nothing -> pure Map.empty
+        Just supername -> throwOnNothing "" $ (\(x, _, _) -> x) <$> Map.lookup supername cmap
+      lookupMetaclass <- case mSupername of
+        Nothing -> pure Map.empty
+        Just supername -> throwOnNothing "" $ (\(x, _, _) -> x) <$> Map.lookup (addMeta supername) cmap
+
+      -- TODO
+      metaclassClass <- throwOnNothing "" $ (\(_, _, x) -> x) <$> Map.lookup "Metaclass" cmap
+
+      (metaLookup, metaGlobalIx, metaCompiled, metaAsObject) <-
+        partialClassClass lookupMetaclass metaclassObjIx metaclassClass
+
+      (classLookup, classGlobalIx, classCompiled, classAsObject) <-
+        partialInstanceClass lookupClass classObjIx metaCompiled
+
+      modify @GCNat $ GC.setAt classObjIx classAsObject
+      modify @GCNat $ GC.setAt metaclassObjIx metaAsObject
+
+      pure
+        [ (name, (classLookup, metaGlobalIx, classCompiled)),
+          (addMeta name, (metaLookup, classGlobalIx, metaCompiled))
+        ]
+
+compileCoreClasses :: ClassEff r => Eff r CoreClasses
+compileCoreClasses = do
+  classClass <- findGlobalVar "Class"
+  metaclassClass <- findGlobalVar "Metaclass"
+  objectClass <- findGlobalVar "Object"
+  systemClass <- findGlobalVar "System"
+  methodClass <- findGlobalVar "Method"
+  primitiveClass <- findGlobalVar "Primitive"
+  booleanClass <- findGlobalVar "Boolean"
+  integerClass <- findGlobalVar "Integer"
+  doubleClass <- findGlobalVar "Double"
+  stringClass <- findGlobalVar "String"
+  symbolClass <- findGlobalVar "Symbol"
+  arrayClass <- findGlobalVar "Array"
+  trueClass <- findGlobalVar "True"
+  falseClass <- findGlobalVar "False"
+  blockClass <- findGlobalVar "Block"
+  block1Class <- findGlobalVar "Block1"
+  block2Class <- findGlobalVar "Block2"
+  block3Class <- findGlobalVar "Block3"
+  pure MkCoreClasses {..}
 
 ------------------------------------------------------------
--- Algebra effects and results
+-- Algebra results
 
 -- Class
-type ClassEff r = Member (State GlobalCtx) r
-
 data ClassRes r = MkClassRes
   { name :: Text,
     supername :: Maybe Text,
@@ -56,10 +146,13 @@ data ClassRes r = MkClassRes
     partialClassClass :: PartialClass r
   }
 
--- superfields ->
-type PartialClass r = ClassEff r => FieldsLookup -> ObjIx -> Eff r CompleteClass
-
-type CompleteClass = (FieldsLookup, VMClassNat, VMObjectNat)
+-- superfields -> new object index -> class of class-as-object -> compiled class
+type PartialClass r =
+  ClassEff r =>
+  FieldsLookup ->
+  ObjIx ->
+  VMClassNat ->
+  Eff r (FieldsLookup, GlobalIx, VMClassNat, VMObjectNat)
 
 -- Method
 type MethodRes = Maybe (LiteralIx, VMMethodNat) -- Ix of method, compiled method
@@ -102,8 +195,6 @@ compileAlgebra = MkAlgebra {..}
     clazz name mSupername instanceF instanceM classF classM =
       MkClassRes {name, supername, partialInstanceClass, partialClassClass}
       where
-        addMeta = (<+ " class")
-
         supername =
           case mSupername of
             Nothing -> Just "Object"
@@ -133,10 +224,16 @@ compileAlgebra = MkAlgebra {..}
       MkGlobalCtx {primitives} <- get
 
       -- signature
-      let mName = methodTypeToText typ
+      let (mName, params) = methodSignature typ
 
       -- try to get native function
-      let f = NativeMethod <$> Map.lookup (className, mName) primitives
+      let f =
+            Map.lookup (className, mName) primitives
+              <&> \nativeBody ->
+                NativeMethod
+                  { nativeBody,
+                    parameterCount = length params
+                  }
 
       -- Literal for this method
       litIx <- getLiteral (SymbolLiteral mName)
@@ -145,8 +242,7 @@ compileAlgebra = MkAlgebra {..}
     -- Compiled method
     method typ (Just b) = do
       -- signature
-      let mName = methodTypeToText typ
-      let params = methodTypeParams typ
+      let (mName, params) = methodSignature typ
 
       let bCtx = methodCtx params
 
@@ -164,6 +260,7 @@ compileAlgebra = MkAlgebra {..}
                 localCount
               }
           )
+
     ---------------------------------------------------
     block vars es =
       -- Add local variables
@@ -217,12 +314,12 @@ compileAlgebra = MkAlgebra {..}
       let nestedCtx = nestedBlockCtx params
 
       -- Compile the body
-      (blockLocalCount, code) <- local nestedCtx body
+      (blockLocalCount, blockBody) <- local nestedCtx body
 
       -- Make a block literal
       let b =
             MkVMBlock
-              { blockBody = code,
+              { blockBody,
                 blockLocalCount,
                 blockParameterCount = length params
               }
@@ -256,7 +353,9 @@ compileClass ::
   [Variable] ->
   [Eff (Reader ClassCtx : r) MethodRes] ->
   PartialClass r
-compileClass name supername thisFields methods superFields asObject = do
+compileClass name supername thisFields methods superFields asObjectIx asObjectClass = do
+  MkGlobalCtx {nilIx} <- get
+
   -- Create fields
   let newIx = (+ 1) $ Map.foldl max 0 superFields
   let fields =
@@ -271,23 +370,29 @@ compileClass name supername thisFields methods superFields asObject = do
   -- Compile methods
   cMethods <- newMethods . catMaybes <$> runReader cCtx (sequence methods)
 
-  -- Get superclass ix
-  superclass <- maybe (pure Nothing) (fmap Just . findGlobalVar) supername
+  -- Get superclass ix (if there is one)
+  superclass <- traverse findGlobalVar supername
 
   -- Create class
   let clazz =
         MkVMClass
           { fieldsCount = length fields,
             superclass,
-            asObject,
+            asObject = asObjectIx,
             methods = cMethods
           }
 
-  -- TODO
-  let object = undefined
+  -- This class as object
+  thisClassIx <- findGlobalVar name
+  let object =
+        ClassObject
+          { clazz = asObjectClass,
+            fields = newFields asObjectClass nilIx,
+            classOf = thisClassIx
+          }
 
   -- result
-  pure (fields, clazz, object)
+  pure (fields, thisClassIx, clazz, object)
 
 ------------------------------------------------------------
 -- Block compile
@@ -334,16 +439,14 @@ compileLit = (expr . singleton . PUSH_LITERAL <$>) . getLiteral
 ------------------------------------------------------------
 -- Method signature
 
-methodTypeToText :: MethodType -> Text
-methodTypeToText (UnaryMethod t) = t
-methodTypeToText (BinaryMethod t _) = t
-methodTypeToText (KeywordMethod kws) = keywordsToText kws
-
-methodTypeParams :: MethodType -> [Text]
-methodTypeParams (UnaryMethod _) = []
-methodTypeParams (BinaryMethod _ param) = [param]
-methodTypeParams (KeywordMethod kws) = NonEmpty.toList $ fmap snd kws
+methodSignature :: MethodType -> (Text, [Text])
+methodSignature (UnaryMethod t) = (t, [])
+methodSignature (BinaryMethod t param) = (t, [param])
+methodSignature (KeywordMethod kws) =
+  (keywordsToText kws, NonEmpty.toList $ fmap snd kws)
 
 keywordsToText :: NonEmpty (Keyword, a) -> Text
 keywordsToText = foldl (<+) "" . fmap fst
 
+addMeta :: Text -> Text
+addMeta = (<+ " class")
