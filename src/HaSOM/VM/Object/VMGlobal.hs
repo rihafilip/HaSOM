@@ -2,7 +2,7 @@
 module HaSOM.VM.Object.VMGlobal
   ( -- * Types defintion
     VMGlobal (..),
-    VMGlobals (..),
+    VMGlobals,
 
     -- * Globals manipulation
     newGlobals,
