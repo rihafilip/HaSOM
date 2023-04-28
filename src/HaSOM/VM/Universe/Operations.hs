@@ -69,6 +69,7 @@ where
 import Combinator ((...))
 import Control.Eff
 import Control.Eff.ExcT
+import Control.Eff.IO.Utility
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
 import Control.Eff.Utility
@@ -147,14 +148,14 @@ getClass idx =
 ---------------------------------------------------------------
 -- Call frame manipulation
 
-getCurrentCallFrame :: (CallStackEff r, Member ExcT r) => Eff r CallFrameNat
+getCurrentCallFrame :: (CallStackEff r, Member ExcT r, Lifted IO r) => Eff r CallFrameNat
 getCurrentCallFrame =
-  get >>= ("Trying to access top of empty call stack" <?. St.top)
+  get >>= ("Trying to access top of empty call stack" <?. St.top) >>= getCallFrame
 
 pushCallFrame :: CallStackEff r => CallFrameNat -> Eff r ()
-pushCallFrame = modify . St.push
+pushCallFrame = modify . St.push . PureCallFrame
 
-popCallFrame :: (CallStackEff r, Member ExcT r) => Eff r CallFrameNat
+popCallFrame :: (CallStackEff r, Member ExcT r) => Eff r CallStackItemNat
 popCallFrame =
   modifyEffYield @CallStackNat $
     "Trying to pop empty call stack" <?. St.pop
@@ -162,33 +163,29 @@ popCallFrame =
 ---------------------------------------------------------------
 -- Locals manipulation
 
-getLocal :: (Member ExcT r, CallStackEff r) => LocalIx -> LocalIx -> Eff r ObjIx
+getLocal :: (Member ExcT r, CallStackEff r, Lifted IO r) => LocalIx -> LocalIx -> Eff r ObjIx
 getLocal env li = do
   cf <- getCurrentCallFrame
+  foundCallFrame <- findCallStack env cf
   locs <-
-    locals
-      <$> ( callFrameEnvironmentErrorMessage env <?> findCallStack env cf
-          )
+    locals <$> (callFrameEnvironmentErrorMessage env <?> foundCallFrame)
   getter Arr.get "Local" li locs
   where
-    findCallStack 0 cf = Just cf
-    findCallStack n BlockCallFrame {capturedFrame} = findCallStack (n - 1) capturedFrame
-    findCallStack _ _ = Nothing
+    findCallStack 0 cf = pure (Just cf)
+    findCallStack n BlockCallFrame {capturedFrame} = lreadIORef capturedFrame >>= findCallStack (n - 1)
+    findCallStack _ _ = pure Nothing
 
-setLocal :: (Member ExcT r, CallStackEff r) => LocalIx -> LocalIx -> ObjIx -> Eff r ()
-setLocal env li objIx = do
-  callStack <- get @CallStackNat
-
-  newCallStack <- case St.pop callStack of
+setLocal :: (Member ExcT r, CallStackEff r, Lifted IO r) => LocalIx -> LocalIx -> ObjIx -> Eff r ()
+setLocal env li objIx = modifyEff @CallStackNat $ \callStack ->
+  case St.pop callStack of
     Nothing -> throwT "Trying to access top of empty call stack"
-    Just (cfs, cf) -> (`St.push` cfs) <$> atCallStack env cf
-
-  put newCallStack
+    Just (cfs, cf) -> (`St.push` cfs) <$> modifyCallFrame cf (atCallStack env)
   where
     atCallStack 0 cf = edit cf
     atCallStack n cf@BlockCallFrame {capturedFrame} = do
-      nested <- atCallStack (n - 1) capturedFrame
-      pure cf {capturedFrame = nested}
+      nested <- lreadIORef capturedFrame >>= atCallStack (n - 1)
+      lwriteIORef capturedFrame nested
+      pure cf
     atCallStack _ _ = throwT $ callFrameEnvironmentErrorMessage env
 
     edit cf = do
@@ -196,7 +193,7 @@ setLocal env li objIx = do
       ls' <- onIdxErrorMessage "Field" li <?> Arr.set li objIx ls
       pure cf {locals = ls'}
 
-getSelf :: (CallStackEff r, Member ExcT r) => Eff r ObjIx
+getSelf :: (CallStackEff r, Member ExcT r, Lifted IO r) => Eff r ObjIx
 getSelf = getLocal 0 0
 
 ---------------------------------------------------------------
@@ -208,12 +205,12 @@ getLiteralE idx = get @VMLiterals >>= getter getLiteral "Literal" idx
 ---------------------------------------------------------------
 -- Fields manipulation
 
-getFieldE :: (CallStackEff r, GCEff r, Member ExcT r) => FieldIx -> Eff r ObjIx
+getFieldE :: (CallStackEff r, GCEff r, Member ExcT r, Lifted IO r) => FieldIx -> Eff r ObjIx
 getFieldE fi = do
   self <- getSelf >>= getAsObject
   getter getField "Field" fi self
 
-setFieldE :: (CallStackEff r, GCEff r, Member ExcT r) => FieldIx -> ObjIx -> Eff r ()
+setFieldE :: (CallStackEff r, GCEff r, Member ExcT r, Lifted IO r) => FieldIx -> ObjIx -> Eff r ()
 setFieldE fi obj = do
   selfIdx <- getSelf
   self <- getAsObject selfIdx
@@ -263,22 +260,22 @@ newTrue = do
 
 newInt :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Int -> Eff r VMObjectNat
 newInt intValue = do
-  MkCoreClasses{integerClass} <- ask
+  MkCoreClasses {integerClass} <- ask
   newObject integerClass $ \clazz fields -> IntObject {clazz, fields, intValue}
 
 newDouble :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Double -> Eff r VMObjectNat
 newDouble doubleValue = do
-  MkCoreClasses{doubleClass} <- ask
+  MkCoreClasses {doubleClass} <- ask
   newObject doubleClass $ \clazz fields -> DoubleObject {clazz, fields, doubleValue}
 
 newString :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Text -> Eff r VMObjectNat
 newString stringValue = do
-  MkCoreClasses{stringClass} <- ask
+  MkCoreClasses {stringClass} <- ask
   newObject stringClass $ \clazz fields -> StringObject {clazz, fields, stringValue}
 
 newSymbol :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Text -> Eff r VMObjectNat
 newSymbol symbolValue = do
-  MkCoreClasses{symbolClass} <- ask
+  MkCoreClasses {symbolClass} <- ask
   newObject symbolClass $ \clazz fields -> SymbolObject {clazz, fields, symbolValue}
 
 ---------------------------------------------------------------

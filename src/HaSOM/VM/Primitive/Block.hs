@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+
 module HaSOM.VM.Primitive.Block (primitives, value) where
 
+import qualified Data.Stack as St
 import Data.Text (Text)
 import HaSOM.VM.Object
 import HaSOM.VM.Primitive.Type
@@ -28,13 +31,13 @@ classMs = []
 ---------------------------------
 -- Instance
 
-value :: (CallStackEff r, ObjStackEff r, Member ExcT r, GCEff r) => Eff r ()
+value :: (CallStackEff r, ObjStackEff r, Member ExcT r, GCEff r, Lifted IO r) => Eff r ()
 value = do
   objIx <- popStack
 
-  (capturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
+  (blockCapturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
     getAsObject objIx >>= \case
-      BlockObject {capturedFrameId, block} -> pure (capturedFrameId, block)
+      BlockObject {blockCapturedFrame, block} -> pure (blockCapturedFrame, block)
       obj -> wrongObjectType obj BlockT
 
   let method =
@@ -53,14 +56,11 @@ value = do
           { method = method,
             pc = 0,
             locals,
-            capturedFrame = undefined -- TODO
+            capturedFrame = blockCapturedFrame
           }
 
   pushCallFrame cf
 
-restart :: (CallStackEff r, Member ExcT r) => Eff r ()
+restart :: (CallStackEff r, Member ExcT r, SetMember Lift (Lift IO) r) => Eff r ()
 restart = do
-  cf <- popCallFrame
-  let cf' = cf {pc = 0}
-  -- TODO pop stack
-  pushCallFrame cf'
+  popCallFrame >>= flip modifyCallFrame (\cf -> pure cf {pc = 0}) >>= modify @CallStackNat . St.push

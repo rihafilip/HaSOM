@@ -6,6 +6,7 @@
 module HaSOM.VM.Universe
   ( -- * Native function specialization of parametrized types
     CallFrameNat,
+    CallStackItemNat,
     CallStackNat,
     VMClassNat,
     VMGlobalNat,
@@ -33,7 +34,7 @@ module HaSOM.VM.Universe
   )
 where
 
-import Control.Eff (Eff, type (<::))
+import Control.Eff (Eff, type (<::), Lifted)
 import Control.Eff.ExcT (ExcT)
 import Control.Eff.Extend (Member)
 import Control.Eff.Reader.Strict (Reader)
@@ -46,6 +47,8 @@ import HaSOM.VM.Object
 
 -- Call stack
 type CallFrameNat = CallFrame NativeFun
+
+type CallStackItemNat = CallStackItem NativeFun
 
 type CallStackNat = CallStack NativeFun
 
@@ -109,12 +112,12 @@ type UniverseEff r =
 
 -- | Native function polymorphic wrapper,
 -- needed for cyclical dependency between Universe and NativeFun
-newtype NativeFun = MkNativeFun (forall r. (UniverseEff r) => Eff r ())
+newtype NativeFun = MkNativeFun (forall r. (UniverseEff r, Lifted IO r) => Eff r ())
 
 -- | Create a native function
-mkNativeFun :: (forall r. (UniverseEff r) => Eff r ()) -> NativeFun
+mkNativeFun :: (forall r. (UniverseEff r, Lifted IO r) => Eff r ()) -> NativeFun
 mkNativeFun = MkNativeFun
 
 -- | Run a native function
-runNativeFun :: UniverseEff r => NativeFun -> Eff r ()
+runNativeFun :: (UniverseEff r, Lifted IO r) => NativeFun -> Eff r ()
 runNativeFun (MkNativeFun f) = f

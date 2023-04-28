@@ -25,7 +25,7 @@ import qualified HaSOM.VM.Primitive.Primitive as Primitive
 import qualified HaSOM.VM.Primitive.String as String
 import qualified HaSOM.VM.Primitive.Symbol as Symbol
 import qualified HaSOM.VM.Primitive.System as System
-import HaSOM.VM.Primitive.Type
+import HaSOM.VM.Primitive.Type ( PrimitiveContainer(..) )
 import HaSOM.VM.Universe (NativeFun)
 
 defaultPrimitives :: [PrimitiveContainer]
@@ -45,6 +45,8 @@ defaultPrimitives =
     Symbol.primitives,
     System.primitives
   ]
+
+-- TODO add global objects
 
 compilePrimitives :: (Member (State GlobalCtx) r) => [PrimitiveContainer] -> Eff r ()
 compilePrimitives =

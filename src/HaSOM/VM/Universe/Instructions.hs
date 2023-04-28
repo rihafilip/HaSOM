@@ -2,8 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- | VM Instructions implementation
-module HaSOM.VM.Universe.Instructions(
-    doHalt,
+module HaSOM.VM.Universe.Instructions
+  ( doHalt,
     doDup,
     doPop,
     doPushLiteral,
@@ -17,13 +17,14 @@ module HaSOM.VM.Universe.Instructions(
     doSupercall,
     doReturn,
     doNonlocalReturn,
-) where
+  )
+where
 
 import Control.Monad (void)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
-import qualified HaSOM.VM.VMArray as Arr
 import HaSOM.VM.Universe.Operations
+import qualified HaSOM.VM.VMArray as Arr
 
 ---------------------------------------------------------------
 -- Simple operations
@@ -56,10 +57,10 @@ doPushLiteral li = do
   idx <- addToGC obj
   pushStack idx
 
-doPushLocal :: (Member ExcT r, CallStackEff r, ObjStackEff r) => LocalIx -> LocalIx -> Eff r ()
+doPushLocal :: (Member ExcT r, CallStackEff r, ObjStackEff r, Lifted IO r) => LocalIx -> LocalIx -> Eff r ()
 doPushLocal env li = getLocal env li >>= pushStack
 
-doPushField :: (CallStackEff r, GCEff r, Member ExcT r, ObjStackEff r) => FieldIx -> Eff r ()
+doPushField :: (CallStackEff r, GCEff r, Member ExcT r, ObjStackEff r, Lifted IO r) => FieldIx -> Eff r ()
 doPushField fi = getFieldE fi >>= pushStack
 
 doPushGlobal :: (ObjStackEff r, GlobalsEff r, Member ExcT r) => GlobalIx -> Eff r ()
@@ -71,10 +72,10 @@ doPushGlobal gi = getGlobalE gi >>= pushStack . transform
 ---------------------------------------------------------------
 -- Setting values
 
-doSetLocal :: (CallStackEff r, ObjStackEff r, Member ExcT r) => LocalIx -> LocalIx -> Eff r ()
+doSetLocal :: (CallStackEff r, ObjStackEff r, Member ExcT r, Lifted IO r) => LocalIx -> LocalIx -> Eff r ()
 doSetLocal env li = popStack >>= setLocal env li
 
-doSetField :: (ObjStackEff r, CallStackEff r, GCEff r, Member ExcT r) => FieldIx -> Eff r ()
+doSetField :: (ObjStackEff r, CallStackEff r, GCEff r, Member ExcT r, Lifted IO r) => FieldIx -> Eff r ()
 doSetField fi = popStack >>= setFieldE fi
 
 doSetGlobal :: (ObjStackEff r, GlobalsEff r, Member ExcT r) => GlobalIx -> Eff r ()
@@ -113,8 +114,7 @@ doCallUnified thisIx li clazz = do
         MethodCallFrame
           { method,
             pc = 0,
-            locals = Arr.fromList localsL,
-            frameId = Nothing
+            locals = Arr.fromList localsL
           }
   pushCallFrame cf
 

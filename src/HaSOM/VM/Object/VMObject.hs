@@ -20,6 +20,8 @@ import qualified HaSOM.VM.VMArray as Arr
 import HaSOM.VM.Object.VMBlock
 import HaSOM.VM.Object.VMClass
 import HaSOM.VM.Object.VMMethod (VMMethod)
+import HaSOM.VM.Object.CallStack (CallFrame)
+import Data.IORef (IORef)
 
 -------------------------------------------------------
 
@@ -86,7 +88,7 @@ data VMObject f
     BlockObject
       { clazz :: VMClass f,
         fields :: Fields,
-        capturedFrameId :: Int,
+        blockCapturedFrame :: IORef (CallFrame f),
         block :: VMBlock
       }
   | MethodObject
