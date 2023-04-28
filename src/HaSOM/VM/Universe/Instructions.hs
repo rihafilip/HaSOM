@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | VM Instructions implementation
 module HaSOM.VM.Universe.Instructions
@@ -20,7 +21,11 @@ module HaSOM.VM.Universe.Instructions
   )
 where
 
+import Combinator ((.>))
+import Control.Eff.IO.Utility (lreadIORef)
 import Control.Monad (void)
+import Data.Functor ((<&>))
+import qualified Data.Stack as St
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
@@ -41,7 +46,7 @@ doPop = void popStack
 ---------------------------------------------------------------
 -- Pushing on stack
 
-doPushLiteral :: UniverseEff r => LiteralIx -> Eff r ()
+doPushLiteral :: (UniverseEff r, Lifted IO r) => LiteralIx -> Eff r ()
 doPushLiteral li = do
   lit <- getLiteralE li
 
@@ -51,7 +56,7 @@ doPushLiteral li = do
     DoubleLiteral value -> newDouble value
     StringLiteral value -> newString value
     SymbolLiteral value -> newSymbol value
-    BlockLiteral vb -> undefined -- TODO
+    BlockLiteral value -> newBlock value
 
   -- Push to GC
   idx <- addToGC obj
@@ -124,8 +129,28 @@ doCallUnified thisIx li clazz = do
 doReturn :: (CallStackEff r, Member ExcT r) => Eff r ()
 doReturn = void popCallFrame
 
-doNonlocalReturn :: Eff r ()
-doNonlocalReturn = undefined -- TODO
+doNonlocalReturn :: (CallStackEff r, Member ExcT r, Lifted IO r) => Eff r ()
+doNonlocalReturn = do
+  cf <- popCallFrame >>= getCallFrame
+  target <- getTarget cf >>= throwOnNothing "Non-local return called inside of method"
+  newStack <-
+    get @CallStackNat
+      <&> popWhile target
+      >>= throwOnNothing "Captured call frame has escaped block context"
+  put newStack
+  where
+    popWhile ref =
+      St.pop .> \case
+        Nothing -> Nothing
+        Just (st', ReferenceCallFrame cf) | cf == ref -> Just st'
+        Just (st', _) -> popWhile ref st'
+
+    getTarget BlockCallFrame {capturedFrame} =
+      lreadIORef capturedFrame
+        >>= \case
+          MethodCallFrame {} -> pure (Just capturedFrame)
+          cf@BlockCallFrame {} -> getTarget cf
+    getTarget _ = pure Nothing
 
 ---------------------------------------------------------------
 

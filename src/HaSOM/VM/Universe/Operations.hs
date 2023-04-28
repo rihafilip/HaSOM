@@ -50,6 +50,7 @@ module HaSOM.VM.Universe.Operations
     newDouble,
     newString,
     newSymbol,
+    newBlock,
 
     -- * Helper functions
     (<?>),
@@ -277,6 +278,22 @@ newSymbol :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Text ->
 newSymbol symbolValue = do
   MkCoreClasses {symbolClass} <- ask
   newObject symbolClass $ \clazz fields -> SymbolObject {clazz, fields, symbolValue}
+
+newBlock :: (UniverseEff r, Lifted IO r) => VMBlock -> Eff r VMObjectNat
+newBlock block = do
+  -- Capture call frame
+  (cf, blockCapturedFrame) <- popCallFrame >>= promoteCallFrame
+  modify @CallStackNat $ St.push cf
+
+  MkCoreClasses {block1Class, block2Class, block3Class} <- ask
+
+  cl <- case blockParameterCount block of
+    0 -> pure block1Class
+    1 -> pure block2Class
+    2 -> pure block3Class
+    _ -> throwT "Trying to create block with more than 2 parameters"
+
+  newObject cl $ \clazz fields -> BlockObject {clazz, fields, blockCapturedFrame, block}
 
 ---------------------------------------------------------------
 
