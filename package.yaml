@@ -54,6 +54,8 @@ library:
   - unordered-containers
   - hashable
   - vector
+  - directory
+  - dir-traverse
 
 executables:
   HaSOM-exe:
