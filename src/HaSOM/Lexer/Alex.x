@@ -2,14 +2,15 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
 -- | Alex generated lexer
-module HaSOM.Lexer.Alex(alexScanTokens) where
+module HaSOM.Lexer.Alex(alexScanTokens, PosToken(..), AlexPosn(..)) where
 
 import HaSOM.Lexer.Token
 import HaSOM.Lexer.Alex.Parsing
+import Data.ByteString.Lazy (ByteString)
 
 }
 
-%wrapper "basic-bytestring"
+%wrapper "posn-bytestring"
 
 $digit = 0-9
 $alpha = [a-zA-Z]
@@ -19,50 +20,58 @@ tokens :-
   \" (\n | ~\")* \" ;
   $white+ ;
 
-  "primitive" { \_ -> TPrimitive }
-  $alpha [$alpha $digit _]* { Identifier . decode }
+  "primitive" { tok TPrimitive }
+  $alpha [$alpha $digit _]* { tokT Identifier decode }
 
-  "=" { \_ -> Equal }
+  "=" { tok Equal }
 
-  "----" "-"* { \_ -> Separator }
+  "----" "-"* { tok Separator }
 
-  "(" { \_ -> NewTerm }
-  ")" { \_ -> EndTerm }
-  "|" { \_ -> Or }
+  "(" { tok NewTerm }
+  ")" { tok EndTerm }
+  "|" { tok Or }
 
-  ","   { \_ -> Comma }
-  "-"   { \_ -> Minus }
-  "~"   { \_ -> Not }
-  "&"   { \_ -> And }
-  "*"   { \_ -> Star }
-  "/"   { \_ -> Div }
-  "\"   { \_ -> Mod }
-  "+"   { \_ -> Plus }
-  ">"   { \_ -> More }
-  "<"   { \_ -> Less }
-  "@"   { \_ -> At }
-  "%"   { \_ -> Per }
+  ","   { tok Comma }
+  "-"   { tok Minus }
+  "~"   { tok Not }
+  "&"   { tok And }
+  "*"   { tok Star }
+  "/"   { tok Div }
+  "\"   { tok Mod }
+  "+"   { tok Plus }
+  ">"   { tok More }
+  "<"   { tok Less }
+  "@"   { tok At }
+  "%"   { tok Per }
 
-  ( "~" | "&" | "|" | "*" | "/" | "\" | "+" | "=" | ">" | "<" | "," | "@" | "%" | "-")+ { OperatorSequence . decode }
+  ( "~" | "&" | "|" | "*" | "/" | "\" | "+" | "=" | ">" | "<" | "," | "@" | "%" | "-")+ { tokT OperatorSequence decode }
 
-  ":"   { \_ -> Colon }
+  ":"   { tok Colon }
 
-  "["   { \_ -> NewBlock }
-  "]"   { \_ -> EndBlock }
+  "["   { tok NewBlock }
+  "]"   { tok EndBlock }
 
-  "#"   { \_ -> Pound }
-  "^"   { \_ -> TExit }
-  "."   { \_ -> Period }
-  ":="  { \_ -> Assign }
+  "#"   { tok Pound }
+  "^"   { tok TExit }
+  "."   { tok Period }
+  ":="  { tok Assign }
 
-  $digit+ { Integer . parseInt }
-  $digit+ "." $digit+ { Double . parseDouble }
+  $digit+ { tokT Integer parseInt }
+  $digit+ "." $digit+ { tokT Double parseDouble }
 
-  $alpha [$alpha $digit _]* ":"    { Keyword . decode }
-  ($alpha [$alpha $digit _]* ":")+ { KeywordSequence . decode }
+  $alpha [$alpha $digit _]* ":"    { tokT Keyword decode }
+  ($alpha [$alpha $digit _]* ":")+ { tokT KeywordSequence decode }
 
-  "'" ($escaped | ~[\' \\])* "'" { STString . decode }
+  "'" ($escaped | ~[\' \\])* "'" { tokT STString decode }
 
 {
+data PosToken = PosToken AlexPosn Token
+  deriving (Show, Eq)
+
+tok :: Token -> AlexPosn -> ByteString ->  PosToken
+tok tk pos _ = PosToken pos tk
+
+tokT :: (a -> Token) -> (ByteString -> a) -> AlexPosn -> ByteString -> PosToken
+tokT tk trans pos str = PosToken pos (tk (trans str))
 
 }

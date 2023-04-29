@@ -5,6 +5,7 @@ module HaSOM.Parser.Happy(parse) where
 import HaSOM.Parser.ParseTree
 import qualified HaSOM.AST as AST
 import HaSOM.Lexer.Token
+import HaSOM.Lexer.Alex(PosToken(..), AlexPosn(..))
 
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
@@ -12,41 +13,41 @@ import Data.Text (Text)
 }
 
 %name parse
-%tokentype { Token }
+%tokentype { PosToken }
 
 %token
-  Primitive         { TPrimitive }
-  Identifier        { Identifier $$ }
-  Equal             { Equal }
-  Separator         { Separator }
-  NewTerm           { NewTerm }
-  EndTerm           { EndTerm }
-  Or                { Or }
-  Comma             { Comma }
-  Minus             { Minus }
-  Not               { Not }
-  And               { And }
-  Star              { Star }
-  Div               { Div }
-  Mod               { Mod }
-  Plus              { Plus }
-  More              { More }
-  Less              { Less }
-  At                { At }
-  Per               { Per }
-  OperatorSequence  { OperatorSequence $$ }
-  Colon             { Colon }
-  NewBlock          { NewBlock }
-  EndBlock          { EndBlock }
-  Pound             { Pound }
-  Exit              { TExit }
-  Period            { Period }
-  Assign            { Assign }
-  Integer           { Integer $$ }
-  Double            { Double $$ }
-  Keyword           { Keyword $$ }
-  KeywordSequence   { KeywordSequence $$ }
-  STString          { STString $$ }
+  Primitive         { PosToken _ TPrimitive }
+  Identifier        { PosToken _ (Identifier $$) }
+  Equal             { PosToken _ Equal }
+  Separator         { PosToken _ Separator }
+  NewTerm           { PosToken _ NewTerm }
+  EndTerm           { PosToken _ EndTerm }
+  Or                { PosToken _ Or }
+  Comma             { PosToken _ Comma }
+  Minus             { PosToken _ Minus }
+  Not               { PosToken _ Not }
+  And               { PosToken _ And }
+  Star              { PosToken _ Star }
+  Div               { PosToken _ Div }
+  Mod               { PosToken _ Mod }
+  Plus              { PosToken _ Plus }
+  More              { PosToken _ More }
+  Less              { PosToken _ Less }
+  At                { PosToken _ At }
+  Per               { PosToken _ Per }
+  OperatorSequence  { PosToken _ (OperatorSequence $$) }
+  Colon             { PosToken _ Colon }
+  NewBlock          { PosToken _ NewBlock }
+  EndBlock          { PosToken _ EndBlock }
+  Pound             { PosToken _ Pound }
+  Exit              { PosToken _ TExit }
+  Period            { PosToken _ Period }
+  Assign            { PosToken _ Assign }
+  Integer           { PosToken _ (Integer $$) }
+  Double            { PosToken _ (Double $$) }
+  Keyword           { PosToken _ (Keyword $$) }
+  KeywordSequence   { PosToken _ (KeywordSequence $$) }
+  STString          { PosToken _ (STString $$) }
 
 %%
 
@@ -321,6 +322,11 @@ x <:| [] = x :| []
 x <:| (xs:xss) = xs :| (x <:> xss)
 
 -- TODO make more robust
-happyError s = error $ "parse error on " ++ show s
+happyError (PosToken (AlexPn _ line column) _ : _) =
+  error $ "parse error on line "
+    ++ show line
+    ++ ", column "
+    ++ show column
+happyError [] = error "parse error at the end of file"
 
 }

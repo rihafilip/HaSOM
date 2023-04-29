@@ -6,4 +6,4 @@ import Data.Text.Utility (showT)
 import qualified Data.Text as T
 
 golden :: SourceGolden
-golden = ("Alex", T.unlines . map showT . alexScanTokens)
+golden = ("Alex", T.unlines . map (\(PosToken _ tk) -> showT tk) . alexScanTokens)

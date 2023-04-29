@@ -41,7 +41,7 @@ tryError errM errC f = do
 errorOut :: (ExecEff r, Show s) => String -> Int -> s -> Eff r a
 errorOut errM errC err = lift (hPutStrLn stderr $ errM ++ show err) >> throwError errC
 
-doScan :: ExecEff r => FilePath -> Eff r [Token]
+doScan :: ExecEff r => FilePath -> Eff r [PosToken]
 doScan fp = do
   cont <- lift $ B.readFile fp
   tryError "Lexer error: " 101 (alexScanTokens cont)
