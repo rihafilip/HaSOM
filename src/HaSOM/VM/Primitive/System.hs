@@ -8,6 +8,7 @@ import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
 import HaSOM.VM.Object
 import Combinator ((.>))
+import HaSOM.VM.Object.VMLiteral (internLiteral)
 
 -- TODO
 primitives :: PrimitiveContainer
@@ -46,8 +47,7 @@ classMs = []
 global :: UniverseEff r => Eff r ()
 global = pureNativeFun @N1 $ \_ (g :+: Nil) -> do
   symbol <- castSymbol g
-
-  idx <- undefined -- TODO
+  idx <- internGlobalE symbol
 
   get @VMGlobalsNat >>= getGlobal idx .> \case
     Nothing -> getNil
@@ -57,8 +57,7 @@ global = pureNativeFun @N1 $ \_ (g :+: Nil) -> do
 globalPut :: UniverseEff r => Eff r ()
 globalPut = pureNativeFun @N2 $ \self (g :+: val :+: Nil) -> do
   symbol <- castSymbol g
-
-  idx <- undefined -- TODO
+  idx <- internGlobalE symbol
 
   setGlobalE idx (ObjectGlobal val)
   pure self
@@ -66,8 +65,7 @@ globalPut = pureNativeFun @N2 $ \self (g :+: val :+: Nil) -> do
 hasGlobal :: UniverseEff r => Eff r ()
 hasGlobal = pureNativeFun @N1 $ \_ (s :+: Nil) -> do
   symbol <- castSymbol s
-
-  idx <- undefined -- TODO
+  idx <- internGlobalE symbol
 
   bool <- get @VMGlobalsNat >>= getGlobal idx .> \case
     Just _ -> newTrue

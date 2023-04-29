@@ -14,6 +14,7 @@ module HaSOM.VM.Universe.Operations
     getGlobalE,
     setGlobalE,
     getClass,
+    internGlobalE,
 
     -- ** Call stack
     getCurrentCallFrame,
@@ -24,6 +25,7 @@ module HaSOM.VM.Universe.Operations
     getLocal,
     setLocal,
     getSelf,
+    internLiteralE,
 
     -- ** Literals
     getLiteralE,
@@ -147,6 +149,9 @@ getClass idx =
           <+ showT idx
           <+ ", but got global object instead"
 
+internGlobalE :: GlobalsEff r => Text -> Eff r GlobalIx
+internGlobalE = modifyYield @VMGlobalsNat . internGlobal
+
 ---------------------------------------------------------------
 -- Call frame manipulation
 
@@ -203,6 +208,9 @@ getSelf = getLocal 0 0
 
 getLiteralE :: (LiteralEff r, Member ExcT r) => LiteralIx -> Eff r VMLiteral
 getLiteralE idx = get @VMLiterals >>= getter getLiteral "Literal" idx
+
+internLiteralE :: LiteralEff r => VMLiteral -> Eff r LiteralIx
+internLiteralE = modifyYield . internLiteral
 
 ---------------------------------------------------------------
 -- Fields manipulation
