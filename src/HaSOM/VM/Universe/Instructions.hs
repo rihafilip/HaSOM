@@ -34,8 +34,11 @@ import qualified HaSOM.VM.VMArray as Arr
 ---------------------------------------------------------------
 -- Simple operations
 
-doHalt :: Eff r ()
-doHalt = undefined -- TODO
+doHalt :: (ObjStackEff r, GCEff r, Member ExcT r) => Eff r Int
+doHalt =
+  popStack >>= getAsObject >>= \case
+    IntObject {intValue} -> pure intValue
+    _ -> throwT "Halt used with non-integer return value"
 
 doDup :: (ObjStackEff r, Member ExcT r) => Eff r ()
 doDup = topStack >>= pushStack

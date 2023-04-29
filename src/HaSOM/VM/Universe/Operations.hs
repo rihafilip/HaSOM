@@ -51,6 +51,7 @@ module HaSOM.VM.Universe.Operations
     newString,
     newSymbol,
     newBlock,
+    newArray,
 
     -- * Helper functions
     (<?>),
@@ -294,6 +295,11 @@ newBlock block = do
     _ -> throwT "Trying to create block with more than 2 parameters"
 
   newObject cl $ \clazz fields -> BlockObject {clazz, fields, blockCapturedFrame, block}
+
+newArray :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Arr.VMArray FieldIx ObjIx -> Eff r VMObjectNat
+newArray arrayValue = do
+  MkCoreClasses{arrayClass} <- ask
+  newObject arrayClass $ \clazz fields -> ArrayObject {clazz, fields, arrayValue}
 
 ---------------------------------------------------------------
 
