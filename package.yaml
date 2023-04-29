@@ -69,6 +69,8 @@ executables:
     - HaSOM
     - text
     - bytestring
+    - cmdargs
+    - extensible-effects
 
 tests:
   HaSOM-test:
