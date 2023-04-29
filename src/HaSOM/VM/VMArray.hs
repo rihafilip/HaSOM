@@ -14,9 +14,13 @@ module HaSOM.VM.VMArray
     -- * length function
     length,
 
+    -- TODO remove ?
     -- * Array appending functions
     appendIx,
     append,
+
+    -- * Transformation
+    toList,
   )
 where
 
@@ -85,3 +89,8 @@ appendIx element (MkVMArray xs) = (MkVMArray (xs ++ [element]), ix (P.length xs 
 -- | Same as appendArrayIx, returning only the new array
 append :: VMIx i => a -> VMArray i a -> VMArray i a
 append = fst ... appendIx
+
+----------------------------------------------------------
+-- | Transform array to list
+toList :: VMArray i a -> [a]
+toList (MkVMArray a) = a

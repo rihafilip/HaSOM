@@ -8,12 +8,20 @@ module HaSOM.VM.Object.VMGlobal
     newGlobals,
     getGlobal,
     setGlobal,
+
+    -- * Interning helpers
+    internGlobal,
+    getGlobalName,
+
+    -- * Disassembly
+    globalsToList,
   )
 where
 
 import qualified Data.HashMap.Strict as Map
 import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
 import HaSOM.VM.Object.VMClass (VMClass)
+import Data.Text (Text)
 
 -- | Representation of global object,
 -- parametrized by primitive function type
@@ -36,3 +44,12 @@ getGlobal idx = Map.lookup idx . runGlobals
 -- | Set global at index
 setGlobal :: GlobalIx -> VMGlobal f -> VMGlobals f -> VMGlobals f
 setGlobal idx g = MkVMGlobals . Map.insert idx g . runGlobals
+
+internGlobal :: Text -> VMGlobals f -> (VMGlobals f, GlobalIx)
+internGlobal = undefined -- TODO
+
+getGlobalName :: GlobalIx -> VMGlobals f -> Maybe Text
+getGlobalName = undefined
+
+globalsToList :: VMGlobals f -> [(GlobalIx, Text, VMGlobal f)]
+globalsToList = undefined

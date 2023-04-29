@@ -9,12 +9,15 @@ module HaSOM.VM.Object.VMMethod
     VMMethods,
     newMethods,
     getMethod,
+
+    -- * Transformation
+    methodsAsList,
   )
 where
 
 import qualified Data.Map.Strict as Map
-import HaSOM.VM.Object.Ix (LiteralIx)
 import HaSOM.VM.Object.Bytecode (Code)
+import HaSOM.VM.Object.Ix (LiteralIx)
 
 -- | VM representation of SOM method,
 -- polymorphic on native method type
@@ -26,13 +29,13 @@ data VMMethod f
         localCount :: Int
       }
   | -- | Method represented by Haskell function
-    NativeMethod {
-      nativeBody :: f,
-      parameterCount :: Int
-    }
-
+    NativeMethod
+      { nativeBody :: f,
+        parameterCount :: Int
+      }
 
 -- TODO as HashMap
+
 -- | Collection of methods
 newtype VMMethods f = MkVMMethods (Map.Map LiteralIx (VMMethod f))
 
@@ -43,3 +46,6 @@ newMethods = MkVMMethods . Map.fromList
 -- | Get a method from collection of methods
 getMethod :: LiteralIx -> VMMethods f -> Maybe (VMMethod f)
 getMethod idx (MkVMMethods ms) = Map.lookup idx ms
+
+methodsAsList :: VMMethods f -> [(LiteralIx, VMMethod f)]
+methodsAsList (MkVMMethods ms) = Map.toList ms
