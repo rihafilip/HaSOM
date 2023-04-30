@@ -9,10 +9,12 @@ import HaSOM.Lexer.Alex(PosToken(..), AlexPosn(..))
 
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
+import Data.Text.Utility
 
 }
 
 %name parse
+%monad { Either Text }
 %tokentype { PosToken }
 
 %token
@@ -321,12 +323,12 @@ infixr 5 <:|
 x <:| [] = x :| []
 x <:| (xs:xss) = xs :| (x <:> xss)
 
--- TODO make more robust
+happyError :: [PosToken] -> Either Text a
 happyError (PosToken (AlexPn _ line column) _ : _) =
-  error $ "parse error on line "
-    ++ show line
-    ++ ", column "
-    ++ show column
-happyError [] = error "parse error at the end of file"
+  Left $ "Error on line "
+    <+ showT line
+    <+ ", column "
+    <+ showT column
+happyError [] = Left "Error at the end of file"
 
 }

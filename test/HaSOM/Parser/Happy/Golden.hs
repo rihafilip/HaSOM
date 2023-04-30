@@ -1,8 +1,9 @@
-module HaSOM.Parser.Happy.Golden(golden) where
-import WithSources
-import HaSOM.Parser.Happy (parse)
-import HaSOM.Lexer.Alex (alexScanTokens)
+module HaSOM.Parser.Happy.Golden (golden) where
+
 import HaSOM.AST.PrettyPrint (prettyPrintAST)
+import HaSOM.Lexer.Alex (alexScanTokens)
+import HaSOM.Parser.Happy (parse)
+import WithSources
 
 golden :: SourceGolden
-golden = ("Happy", prettyPrintAST . parse . alexScanTokens)
+golden = ("Happy", either id prettyPrintAST . parse . alexScanTokens)

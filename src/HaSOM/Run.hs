@@ -49,7 +49,10 @@ doScan fp = do
 doParse :: ExecEff r => FilePath -> Eff r AST.Class
 doParse fp = do
   tokens <- doScan fp
-  tryError "Parser error: " 102 (parse tokens)
+  either
+    (errorOut "Parser error: " 102)
+    pure
+    (parse tokens)
 
 doCompile :: ExecEff r => [FilePath] -> Eff r CompilationResult
 doCompile files = do
