@@ -8,11 +8,11 @@ import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
-import Control.Exception (ErrorCall, evaluate, try)
 import qualified Data.ByteString.Lazy as B
 import Data.Functor ((<&>))
 import Data.Stack (emptyStack)
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility
 import qualified HaSOM.AST as AST
@@ -27,40 +27,41 @@ import HaSOM.VM.Universe
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitWith)
-import System.IO (hPutStrLn, stderr)
-import qualified Data.Text as T
+import System.IO (stderr)
 
 type ExecEff r = (Lifted IO r, Member (Exc Int) r)
 
-tryError :: ExecEff r => String -> Int -> a -> Eff r a
-tryError errM errC f = do
-  lift (try @ErrorCall $ evaluate f) >>= \case
-    Left err -> errorOut errM errC (show err)
-    Right x -> pure x
-
-errorOut :: (ExecEff r)=> String -> Int -> String -> Eff r a
-errorOut errM errC err = lift (hPutStrLn stderr $ errM ++ err) >> throwError errC
+tryEff :: ExecEff r => Text -> Int -> Either Text a -> Eff r a
+tryEff errM errC =
+  either
+    exitW
+    pure
+  where
+    exitW err = lift (TIO.hPutStrLn stderr $ errM <+ err) >> throwError errC
 
 doScan :: ExecEff r => FilePath -> Eff r [PosToken]
 doScan fp = do
   cont <- lift $ B.readFile fp
-  tryError ("Lexer error in file " ++ fp ++ ": ") 101 (alexScanTokens cont)
+  lift (scan cont)
+    >>= tryEff
+      ("Lexer error in file " <+ T.pack fp <+ ": ")
+      101
 
 doParse :: ExecEff r => FilePath -> Eff r AST.Class
 doParse fp = do
   tokens <- doScan fp
-  either
-    (errorOut ("Parser error in file " ++ fp ++ " : ") 102 . T.unpack)
-    pure
+  tryEff
+    ("Parser error in file " <+ T.pack fp <+ " : ")
+    102
     (parse tokens)
 
 doCompile :: ExecEff r => [FilePath] -> Eff r CompilationResult
 doCompile files = do
   classpaths <- lift $ concat <$> mapM collect files
   asts <- mapM doParse classpaths
-  either
-    (errorOut "Compilation error: " 103 . T.unpack)
-    pure
+  tryEff
+    "Compilation error: "
+    103
     (compile asts (GC.empty undefined) defaultPrimitives) -- TODO gc
   where
     collect fp =

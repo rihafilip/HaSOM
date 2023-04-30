@@ -1,11 +1,14 @@
 {
 {-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Alex generated lexer
-module HaSOM.Lexer.Alex(alexScanTokens, PosToken(..), AlexPosn(..), prettyPrintTokens) where
+module HaSOM.Lexer.Alex(alexScanTokens, scan, PosToken(..), AlexPosn(..), prettyPrintTokens) where
 
 import HaSOM.Lexer.Token
 import HaSOM.Lexer.Alex.Parsing
+import Control.Exception (ErrorCall, evaluate, try)
+import qualified Data.Bifunctor as Bf
 import Data.ByteString.Lazy (ByteString)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -90,5 +93,7 @@ prettyPrintTokens = T.unlines . map mTk . snd . foldl fTk (0, [])
       <+ "  "
       <+ tokenToText tk
 
+scan :: ByteString -> IO (Either Text [PosToken])
+scan = fmap (Bf.first showT) . try @ErrorCall . evaluate . alexScanTokens
 
 }
