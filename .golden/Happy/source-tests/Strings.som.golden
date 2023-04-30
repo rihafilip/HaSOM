@@ -1,0 +1,28 @@
+name: "StringTest"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "run"
+    (UnaryCall "println"
+      (String 'Simple string')
+    )
+    (UnaryCall "println"
+      (String '')
+    )
+    (UnaryCall "print"
+      (String '\thello\tworld\n')
+    )
+    (UnaryCall "println"
+      (String 'This is \'quotes \' here')
+    )
+    (UnaryCall "println"
+      (String 'This is slash \\')
+    )
+    (UnaryCall "println"
+      (String 'This is some escaped tokens \b \r \f')
+    )
+  )
+class variables:
+  [  ]
+class methods:

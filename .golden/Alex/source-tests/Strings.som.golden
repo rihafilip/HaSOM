@@ -1,0 +1,26 @@
+Identifier StringTest
+Equal
+NewTerm
+Identifier run
+Equal
+NewTerm
+STString 'Simple string'
+Identifier println
+Period
+STString ''
+Identifier println
+Period
+STString '\thello\tworld\n'
+Identifier print
+Period
+STString 'This is \'quotes \' here'
+Identifier println
+Period
+STString 'This is slash \\'
+Identifier println
+Period
+STString 'This is some escaped tokens \b \r \f'
+Identifier println
+Period
+EndTerm
+EndTerm

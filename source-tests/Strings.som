@@ -1,0 +1,11 @@
+StringTest = (
+    run = (
+        'Simple string' println.
+        '' println.
+        '\thello\tworld\n' print.
+
+        'This is \'quotes \' here' println.
+        'This is slash \\' println.
+        'This is some escaped tokens \b \r \f' println.
+    )
+)
