@@ -6,6 +6,7 @@ import qualified HaSOM.VM.GC.Spec
 import qualified HaSOM.VM.VMArray.Spec
 import Test.Hspec (hspec)
 import WithSources
+import qualified Data.LookupMap.Spec
 
 main :: IO ()
 main = do
@@ -15,6 +16,7 @@ main = do
     Data.Stack.Spec.spec
     HaSOM.VM.VMArray.Spec.spec
     HaSOM.VM.GC.Spec.spec
+    Data.LookupMap.Spec.spec
 
     -- Golden tests
     sequenceTestFilesGolden

@@ -1,12 +1,9 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module HaSOM.VM.VMArray.Spec (spec) where
 
 import Control.Monad (zipWithM_)
-import Data.Ix (Ix)
 import HaSOM.VM.Object (VMIx (..))
 import HaSOM.VM.VMArray (VMArray)
 import qualified HaSOM.VM.VMArray as Arr
@@ -20,18 +17,12 @@ import Test.Hspec
   )
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
+import Helper.VMIx (TestIx)
 
 instance (Arbitrary a) => Arbitrary (VMArray i a) where
   arbitrary = do
     (x :: [a]) <- listOf arbitrary
     pure (Arr.fromList x)
-
-newtype TestIx = MkIx Int
-  deriving newtype (Show, Bounded, Enum, Ix, Num, Real, Integral, Eq, Ord)
-
-instance VMIx TestIx where
-  ix = MkIx
-  getIx (MkIx i) = i
 
 exampleList :: [Int]
 exampleList = [0, 1, 2, 3, 4, 5]

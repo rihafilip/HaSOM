@@ -47,13 +47,13 @@ library:
   source-dirs: src
   dependencies:
   - array
-  - extensible-effects
-  - text
-  - bytestring
+  - vector
   - containers
   - unordered-containers
+  - text
+  - bytestring
   - hashable
-  - vector
+  - extensible-effects
   - directory
   - dir-traverse
 
@@ -69,8 +69,8 @@ executables:
     - HaSOM
     - text
     - bytestring
-    - cmdargs
     - extensible-effects
+    - cmdargs
 
 tests:
   HaSOM-test:
@@ -87,5 +87,6 @@ tests:
     - QuickCheck
     - bytestring
     - text
+    - hashable
     - directory
     - dir-traverse

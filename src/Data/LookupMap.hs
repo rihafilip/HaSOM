@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 -- | Interning helper collection.
 --
 -- It exposes an interface for giving a new index continuously
@@ -33,6 +34,9 @@ data LookupMap i v = MkLookupMap
   { lookups :: Map.HashMap i v,
     nextIx :: v
   }
+
+instance (Show i, Show v) => Show (LookupMap i v) where
+  show = show . lookups
 
 -- | Create a new empty LookupMap
 new :: (VMIx v) => LookupMap i v
