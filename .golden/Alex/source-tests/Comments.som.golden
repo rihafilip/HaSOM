@@ -1,21 +1,21 @@
-Identifier "Comments"
+Identifier Comments
 Equal
-Identifier "Superclass"
+Identifier Superclass
 NewTerm
-Identifier "a"
+Identifier a
 Equal
 NewTerm
 Or
-Identifier "a"
-Identifier "b"
-Identifier "c"
+Identifier a
+Identifier b
+Identifier c
 Or
 TExit
-Identifier "return"
+Identifier return
 Period
 EndTerm
-Keyword "f:"
-Identifier "f"
+Keyword f:
+Identifier f
 Equal
 NewTerm
 EndTerm

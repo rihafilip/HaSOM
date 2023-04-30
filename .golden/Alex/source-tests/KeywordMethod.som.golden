@@ -1,22 +1,22 @@
-Identifier "KeywordMethod"
+Identifier KeywordMethod
 Equal
 NewTerm
-Keyword "kw:"
-Identifier "arg"
-Equal
-NewTerm
-EndTerm
-Keyword "kw1:"
-Identifier "arg1"
-Keyword "kw2:"
-Identifier "arg2"
+Keyword kw:
+Identifier arg
 Equal
 NewTerm
 EndTerm
-Keyword "foo:"
-Identifier "bar"
-Keyword "Foo:"
-Identifier "Bar"
+Keyword kw1:
+Identifier arg1
+Keyword kw2:
+Identifier arg2
+Equal
+NewTerm
+EndTerm
+Keyword foo:
+Identifier bar
+Keyword Foo:
+Identifier Bar
 Equal
 NewTerm
 EndTerm

@@ -1,26 +1,26 @@
-Identifier "WithLocals"
+Identifier WithLocals
 Equal
 NewTerm
-Identifier "a"
+Identifier a
 Equal
 NewTerm
 Or
-Identifier "x"
-Identifier "y"
-Identifier "z"
+Identifier x
+Identifier y
+Identifier z
 Or
 EndTerm
-Identifier "b"
+Identifier b
 Equal
 NewTerm
 Or
 Or
 EndTerm
-Identifier "c"
+Identifier c
 Equal
 NewTerm
 Or
-Identifier "l"
+Identifier l
 Or
 EndTerm
 EndTerm

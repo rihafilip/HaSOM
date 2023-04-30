@@ -1,20 +1,20 @@
-Identifier "UnaryMethod"
+Identifier UnaryMethod
 Equal
 NewTerm
-Identifier "foo"
+Identifier foo
 Equal
 NewTerm
 EndTerm
-Identifier "bar"
+Identifier bar
 Equal
 NewTerm
 EndTerm
 Separator
-Identifier "f"
+Identifier f
 Equal
 NewTerm
 EndTerm
-Identifier "g"
+Identifier g
 Equal
 NewTerm
 EndTerm

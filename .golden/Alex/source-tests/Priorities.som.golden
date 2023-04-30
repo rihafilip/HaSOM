@@ -1,33 +1,33 @@
-Identifier "Priorities"
+Identifier Priorities
 Equal
 NewTerm
-Identifier "foo"
+Identifier foo
 Equal
 NewTerm
-Identifier "x"
+Identifier x
 Plus
-Identifier "y"
-Identifier "unaryCall"
+Identifier y
+Identifier unaryCall
 Period
 NewTerm
-Identifier "x"
+Identifier x
 Plus
-Identifier "y"
+Identifier y
 EndTerm
-Identifier "unaryCall"
+Identifier unaryCall
 Period
-Identifier "x"
-Identifier "foo"
-Identifier "bar"
-Keyword "baz:"
-Identifier "a"
+Identifier x
+Identifier foo
+Identifier bar
+Keyword baz:
+Identifier a
 Plus
-Identifier "b"
-Identifier "println"
+Identifier b
+Identifier println
 Plus
 Integer 10
-Keyword "foo1:"
-Identifier "f"
+Keyword foo1:
+Identifier f
 Period
 EndTerm
 EndTerm

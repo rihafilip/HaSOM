@@ -1,33 +1,33 @@
-Identifier "PrimitiveMethod"
+Identifier PrimitiveMethod
 Equal
 NewTerm
-Identifier "unary"
+Identifier unary
 Equal
 TPrimitive
-OperatorSequence "<>"
-Identifier "other"
+OperatorSequence <>
+Identifier other
 Equal
 TPrimitive
-OperatorSequence "=="
-Identifier "a"
+OperatorSequence ==
+Identifier a
 Equal
 TPrimitive
-Keyword "keyword:"
-Identifier "argument"
+Keyword keyword:
+Identifier argument
 Equal
 TPrimitive
-Keyword "keyword:"
-Identifier "argumet"
-Keyword "with:"
-Identifier "this"
+Keyword keyword:
+Identifier argumet
+Keyword with:
+Identifier this
 Equal
 TPrimitive
-Keyword "keyword:"
-Identifier "argumet"
-Keyword "with:"
-Identifier "this"
-Keyword "and:"
-Identifier "that"
+Keyword keyword:
+Identifier argumet
+Keyword with:
+Identifier this
+Keyword and:
+Identifier that
 Equal
 TPrimitive
 EndTerm

@@ -1,11 +1,11 @@
-Identifier "Expressions"
+Identifier Expressions
 Equal
 NewTerm
-Identifier "foo"
+Identifier foo
 Equal
 NewTerm
 TExit
-Identifier "ret"
+Identifier ret
 Period
 EndTerm
 EndTerm

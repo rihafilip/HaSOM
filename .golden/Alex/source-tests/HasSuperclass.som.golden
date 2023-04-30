@@ -1,5 +1,5 @@
-Identifier "HasSuperclass"
+Identifier HasSuperclass
 Equal
-Identifier "TheSuperclassName"
+Identifier TheSuperclassName
 NewTerm
 EndTerm
