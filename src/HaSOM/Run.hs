@@ -18,7 +18,6 @@ import Data.Text.Utility
 import qualified HaSOM.AST as AST
 import HaSOM.Compiler
 import HaSOM.Lexer.Alex
-import HaSOM.Lexer.Token (Token)
 import HaSOM.Parser.Happy
 import HaSOM.VM.Disassembler
 import qualified HaSOM.VM.GC as GC
@@ -29,28 +28,29 @@ import System.Directory (doesDirectoryExist, doesFileExist)
 import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitWith)
 import System.IO (hPutStrLn, stderr)
+import qualified Data.Text as T
 
 type ExecEff r = (Lifted IO r, Member (Exc Int) r)
 
 tryError :: ExecEff r => String -> Int -> a -> Eff r a
 tryError errM errC f = do
   lift (try @ErrorCall $ evaluate f) >>= \case
-    Left err -> errorOut errM errC err
+    Left err -> errorOut errM errC (show err)
     Right x -> pure x
 
-errorOut :: (ExecEff r, Show s) => String -> Int -> s -> Eff r a
-errorOut errM errC err = lift (hPutStrLn stderr $ errM ++ show err) >> throwError errC
+errorOut :: (ExecEff r)=> String -> Int -> String -> Eff r a
+errorOut errM errC err = lift (hPutStrLn stderr $ errM ++ err) >> throwError errC
 
 doScan :: ExecEff r => FilePath -> Eff r [PosToken]
 doScan fp = do
   cont <- lift $ B.readFile fp
-  tryError "Lexer error: " 101 (alexScanTokens cont)
+  tryError ("Lexer error in file " ++ fp ++ ": ") 101 (alexScanTokens cont)
 
 doParse :: ExecEff r => FilePath -> Eff r AST.Class
 doParse fp = do
   tokens <- doScan fp
   either
-    (errorOut "Parser error: " 102)
+    (errorOut ("Parser error in file " ++ fp ++ " : ") 102 . T.unpack)
     pure
     (parse tokens)
 
@@ -59,7 +59,7 @@ doCompile files = do
   classpaths <- lift $ concat <$> mapM collect files
   asts <- mapM doParse classpaths
   either
-    (errorOut "Compilation error: " 103)
+    (errorOut "Compilation error: " 103 . T.unpack)
     pure
     (compile asts (GC.empty undefined) defaultPrimitives) -- TODO gc
   where

@@ -2,11 +2,14 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
 -- | Alex generated lexer
-module HaSOM.Lexer.Alex(alexScanTokens, PosToken(..), AlexPosn(..)) where
+module HaSOM.Lexer.Alex(alexScanTokens, PosToken(..), AlexPosn(..), prettyPrintTokens) where
 
 import HaSOM.Lexer.Token
 import HaSOM.Lexer.Alex.Parsing
 import Data.ByteString.Lazy (ByteString)
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Utility
 
 }
 
@@ -72,5 +75,20 @@ tok tk pos _ = PosToken pos tk
 
 tokT :: (a -> Token) -> (ByteString -> a) -> AlexPosn -> ByteString -> PosToken
 tokT tk trans pos str = PosToken pos (tk (trans str))
+
+prettyPrintTokens :: [PosToken] -> Text
+prettyPrintTokens = T.unlines . map mTk . snd . foldl fTk (0, [])
+  where
+    fTk (prev, acc) (PosToken (AlexPn _ line _) tk) =
+      (line, acc ++ [ (indicator, tk) ])
+      where
+        indicator | line == prev = Nothing
+                  | otherwise = Just line
+
+    mTk (line, tk) =
+      T.justifyRight 3 ' ' (maybe "" showT line)
+      <+ "  "
+      <+ tokenToText tk
+
 
 }

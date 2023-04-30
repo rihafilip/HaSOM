@@ -9,10 +9,9 @@ module Main (main) where
 import Control.Eff
 import Control.Eff.Exception
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.Text.Utility (showT)
 import HaSOM.AST.PrettyPrint (prettyPrintAST)
+import HaSOM.Lexer.Alex (prettyPrintTokens)
 import HaSOM.Run
 import System.Console.CmdArgs
 import System.Exit (ExitCode (ExitFailure), exitWith)
@@ -72,7 +71,7 @@ main = do
     >>= \case
       Scan fp ->
         wrap (doScan fp)
-          >>= TIO.putStrLn . T.unlines . map showT
+          >>= TIO.putStrLn . prettyPrintTokens
       Parse fp ->
         wrap (doParse fp)
           >>= TIO.putStrLn . prettyPrintAST

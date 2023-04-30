@@ -1,7 +1,8 @@
 -- | Definition of lexer tokens
-module HaSOM.Lexer.Token(Token(..)) where
+module HaSOM.Lexer.Token(Token(..), tokenToText) where
 
 import Data.Text (Text)
+import Data.Text.Utility
 
 -- | SOM tokens
 data Token
@@ -50,3 +51,13 @@ data Token
 
   | STString Text
   deriving (Eq, Show)
+
+-- | Pretty print a token to Text
+tokenToText :: Token -> Text
+tokenToText = \case
+  Identifier txt -> "Identifier " <+ txt
+  OperatorSequence txt -> "OperatorSequence " <+ txt
+  Keyword txt -> "Keyword " <+ txt
+  KeywordSequence txt -> "KeywordSequence " <+ txt
+  STString txt -> "STString " <+ txt
+  tk -> showT tk
