@@ -23,7 +23,7 @@ where
 
 import Combinator ((.>))
 import Control.Eff.IO.Utility (lreadIORef)
-import Control.Monad (void)
+import Control.Monad (void, (>=>))
 import Data.Functor ((<&>))
 import qualified Data.Stack as St
 import HaSOM.VM.Object
@@ -50,7 +50,10 @@ doPop = void popStack
 -- Pushing on stack
 
 doPushLiteral :: (UniverseEff r, Lifted IO r) => LiteralIx -> Eff r ()
-doPushLiteral li = do
+doPushLiteral = doGetLiteral >=> pushStack
+
+doGetLiteral :: (UniverseEff r, Lifted IO r) => LiteralIx -> Eff r ObjIx
+doGetLiteral li = do
   lit <- getLiteralE li
 
   -- Create literal object
@@ -59,11 +62,11 @@ doPushLiteral li = do
     DoubleLiteral value -> newDouble value
     StringLiteral value -> newString value
     SymbolLiteral value -> newSymbol value
+    ArrayLiteral value -> mapM doGetLiteral value >>= newArray . Arr.fromList
     BlockLiteral value -> newBlock value
 
-  -- Push to GC
-  idx <- addToGC obj
-  pushStack idx
+  addToGC obj
+
 
 doPushLocal :: (Member ExcT r, CallStackEff r, ObjStackEff r, Lifted IO r) => LocalIx -> LocalIx -> Eff r ()
 doPushLocal env li = getLocal env li >>= pushStack

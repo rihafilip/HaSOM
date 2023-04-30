@@ -21,9 +21,9 @@ import Data.Hashable (Hashable (hashWithSalt))
 import qualified Data.LookupMap as LM
 import Data.Text (Text, unpack)
 import Data.Text.Utility ((<+))
-import Data.Tuple (swap)
 import HaSOM.VM.Object.Ix
 import HaSOM.VM.Object.VMBlock (VMBlock)
+import Data.List (intercalate)
 
 -- | Representation of SOM literal
 data VMLiteral
@@ -31,6 +31,7 @@ data VMLiteral
   | DoubleLiteral Double
   | StringLiteral Text
   | SymbolLiteral Text
+  | ArrayLiteral [LiteralIx]
   | BlockLiteral VMBlock
 
 instance Hashable VMLiteral where
@@ -38,6 +39,7 @@ instance Hashable VMLiteral where
   hashWithSalt i (DoubleLiteral v) = hashWithSalt i v
   hashWithSalt i (StringLiteral v) = hashWithSalt i v
   hashWithSalt i (SymbolLiteral v) = hashWithSalt i ("#" <+ v)
+  hashWithSalt i (ArrayLiteral vs) = hashWithSalt i vs
   hashWithSalt i (BlockLiteral _) = hashWithSalt i ("#block" :: String)
 
 instance Eq VMLiteral where
@@ -45,6 +47,7 @@ instance Eq VMLiteral where
   (DoubleLiteral a) == (DoubleLiteral b) = a == b
   (StringLiteral a) == (StringLiteral b) = a == b
   (SymbolLiteral a) == (SymbolLiteral b) = a == b
+  (ArrayLiteral a) == (ArrayLiteral b) = a == b
   _ == _ = False
 
 instance Show VMLiteral where
@@ -52,6 +55,7 @@ instance Show VMLiteral where
   show (DoubleLiteral v) = show v
   show (StringLiteral v) = unpack v
   show (SymbolLiteral v) = "#" ++ unpack v
+  show (ArrayLiteral vs) = "#(" ++ intercalate ", " (map show vs) ++  ")"
   show (BlockLiteral _) = "<block>"
 
 -- | Representation of all literals

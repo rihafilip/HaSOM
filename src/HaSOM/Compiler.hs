@@ -329,11 +329,7 @@ compileAlgebra = MkAlgebra {..}
         LocalVar li li' -> expr [PUSH_LOCAL li li']
         SuperVar li -> super [PUSH_FIELD li]
 
-    literal (LArray arr) = exprR [] -- TODO
-    literal (LSymbol sym) = compileLit (SymbolLiteral sym)
-    literal (LString str) = compileLit (StringLiteral str)
-    literal (LInteger int) = compileLit (IntLiteral int)
-    literal (LDouble d) = compileLit (DoubleLiteral d)
+    literal = (expr . singleton . PUSH_LITERAL <$>) . transformLiteral
 
 ------------------------------------------------------------
 -- Class compile
@@ -425,8 +421,14 @@ compileCall selector isSuper =
 ------------------------------------------------------------
 -- Literal compile
 
-compileLit :: Member (State GlobalCtx) r => VMLiteral -> Eff r ExprRes
-compileLit = (expr . singleton . PUSH_LITERAL <$>) . getLiteral
+transformLiteral :: Member (State GlobalCtx) r => Literal -> Eff r LiteralIx
+transformLiteral (LArray lits) =
+  mapM transformLiteral lits
+    >>= getLiteral . ArrayLiteral
+transformLiteral (LSymbol sym) = getLiteral (SymbolLiteral sym)
+transformLiteral (LString str) = getLiteral (StringLiteral str)
+transformLiteral (LInteger int) = getLiteral (IntLiteral int)
+transformLiteral (LDouble d) = getLiteral (DoubleLiteral d)
 
 ------------------------------------------------------------
 -- Method signature
