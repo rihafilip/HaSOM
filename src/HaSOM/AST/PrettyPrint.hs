@@ -146,4 +146,4 @@ prettyPrintAlgerba = MkAlgebra {..}
     literal (LSymbol symbol) = "Symbol" <#> symbol
     literal (LString str) = "String" <#> str
     literal (LInteger int) = "Integer" <#> T.pack (show int)
-    literal (LDouble double) = "Integer" <#> T.pack (show double)
+    literal (LDouble double) = "Double" <#> T.pack (show double)
