@@ -9,6 +9,7 @@ import HaSOM.Lexer.Alex(PosToken(..), AlexPosn(..))
 
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Text.Utility
 
 }
@@ -168,7 +169,8 @@ assignation :: { (NonEmpty AST.Variable, Evaluation) }
 assignation : assignments evaluation { ($1, $2) }
 
 assignments :: { NonEmpty AST.Variable }
-assignments : assignmentsStar assignment { $2 <:| $1 }
+assignments : assignment { $1 <:| [] }
+            | assignments assignment { $1 |> $2 }
 
 assignmentsStar :: { [AST.Variable] }
 assignmentsStar : {- empty -}                  { [] }
@@ -322,6 +324,10 @@ infixr 5 <:|
 (<:|) :: a -> [a] -> NonEmpty a
 x <:| [] = x :| []
 x <:| (xs:xss) = xs :| (x <:> xss)
+
+infixl 5 |>
+(|>) :: NonEmpty a -> a -> NonEmpty a
+(xs :| xss) |> x = xs :| (xss ++ [x])
 
 happyError :: [PosToken] -> Either Text a
 happyError (PosToken (AlexPn _ line column) _ : _) =
