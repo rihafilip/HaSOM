@@ -4,8 +4,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module HaSOM.Compiler (compile, CompilationResult(..)) where
+module HaSOM.Compiler (compile, CompilationResult (..)) where
 
+import Combinator ((.>))
 import Control.Eff
 import Control.Eff.ExcT
 import Control.Eff.Exception
@@ -17,20 +18,18 @@ import qualified Data.HashMap.Strict as Map
 import Data.List (intercalate, singleton)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Maybe (catMaybes, mapMaybe)
+import qualified Data.LookupMap as LM
+import Data.Maybe (catMaybes)
 import Data.Text (Text)
 import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.Context
-import qualified Data.LookupMap as LM
 import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)
 import HaSOM.VM.Primitive.Type (PrimitiveContainer)
 import HaSOM.VM.Universe
-import qualified Data.Bifunctor as Bf
-import Data.Tuple (swap)
 
 ------------------------------------------------------------
 -- Compilation orchestration
@@ -40,9 +39,7 @@ data CompilationResult = MkCompilationResult
   { globals :: VMGlobalsNat,
     coreClasses :: CoreClasses,
     literals :: VMLiterals,
-    gCollector :: GCNat,
-    globalsInterner :: Map.HashMap Text GlobalIx,
-    symbolsInterner :: Map.HashMap Text LiteralIx
+    gCollector :: GCNat
   }
 
 -- | Compile the ASTs
@@ -54,26 +51,21 @@ compile asts gc prims =
         runState initGlobalCtx $
           runState gc $ do
             compilePrimitives prims
-            classes <- compileClasses asts
-            coreClasses <- compileCoreClasses
-            pure (classes, coreClasses)
+            compileClasses asts
+            compileCoreClasses
   where
-    initGlobalCtx = MkGlobalCtx {globals = LM.new, symbols = LM.new, primitives = Map.empty, nilIx = GC.nil gc}
+    initGlobalCtx = MkGlobalCtx {globals = newGlobals, literals = newLiterals, primitives = Map.empty, nilIx = GC.nil gc}
 
-    finish (((classes, coreClasses), gCollector), MkGlobalCtx {globals, symbols}) =
+    finish ((coreClasses, gCollector), MkGlobalCtx {globals, literals}) =
       MkCompilationResult
-        { globals = newGlobals globals $ map (Bf.second ClassGlobal) classes,
+        { globals,
           coreClasses,
-          literals = newLiterals symbols,
-          gCollector,
-          globalsInterner = LM.toHashMap globals,
-          symbolsInterner = Map.fromList $ mapMaybe extractSymbol $ LM.toList symbols
+          literals,
+          gCollector
         }
-    extractSymbol (SymbolLiteral s, v) = Just (s, v)
-    extractSymbol _ = Nothing
 
-compileClasses :: forall r. (ClassEff r, Member ExcT r, GCEff r) => [AST.Class] -> Eff r [(GlobalIx, VMClassNat)]
-compileClasses asts = map (\(_, (_, idx, clazz)) -> (idx, clazz)) . Map.toList <$> completeMap
+compileClasses :: forall r. (ClassEff r, Member ExcT r, GCEff r) => [AST.Class] -> Eff r ()
+compileClasses asts = completeMap >>= Map.toList .> mapM_ (\(_, (_, idx, clazz)) -> insertClass idx clazz)
   where
     partialClasses :: [ClassRes r]
     partialClasses = map (fold compileAlgebra) asts

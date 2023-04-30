@@ -61,10 +61,8 @@ data VMLiterals = MkVMLiterals
   }
 
 -- | Create new literals from list
-newLiterals :: LM.LookupMap VMLiteral LiteralIx -> VMLiterals
-newLiterals int = MkVMLiterals hmap int
-  where
-    hmap = Map.fromList $ map swap $ LM.toList int
+newLiterals :: VMLiterals
+newLiterals = MkVMLiterals Map.empty LM.new
 
 -- | Get literal at index
 getLiteral :: LiteralIx -> VMLiterals -> Maybe VMLiteral

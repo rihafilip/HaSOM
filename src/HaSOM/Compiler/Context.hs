@@ -23,6 +23,7 @@ module HaSOM.Compiler.Context
     nestedBlockCtx,
     isBlock,
     getLiteral,
+    insertClass,
 
     -- * Variable lookup helpers
     VarRes(..),
@@ -44,14 +45,14 @@ import Data.Text (Text)
 import Data.LookupMap (LookupMap)
 import qualified Data.LookupMap as LM
 import HaSOM.VM.Object hiding (getLiteral)
-import HaSOM.VM.Universe (NativeFun)
+import HaSOM.VM.Universe
 
 ------------------------------------------------------------
 -- Compilation contexts
 
 data GlobalCtx = MkGlobalCtx
-  { globals :: LookupMap Text GlobalIx,
-    symbols :: LookupMap VMLiteral LiteralIx,
+  { globals :: VMGlobalsNat,
+    literals :: VMLiterals,
     primitives :: Map.HashMap (Text, Text) NativeFun,
     nilIx :: ObjIx
   }
@@ -107,10 +108,19 @@ isBlock =
 -- | Resolve literal, adding it to context if it is not there already
 getLiteral :: Member (State GlobalCtx) r => VMLiteral -> Eff r LiteralIx
 getLiteral sym = do
-  ctx@MkGlobalCtx {symbols} <- get
-  let (newSym, symIx) = LM.getOrSet sym symbols
-  put (ctx {symbols = newSym})
-  pure symIx
+  ctx@MkGlobalCtx {literals} <- get
+  let (newLit, litIx) = internLiteral sym literals
+  put (ctx {literals = newLit})
+  pure litIx
+
+------------------------------------------------------------
+-- Class insertion
+
+insertClass :: Member (State GlobalCtx) r => GlobalIx -> VMClassNat -> Eff r ()
+insertClass idx clazz = do
+  ctx@MkGlobalCtx {globals} <- get
+  let newGlobs = setGlobal idx (ClassGlobal clazz) globals
+  put (ctx {globals = newGlobs})
 
 ------------------------------------------------------------
 -- Variable resolving
@@ -141,7 +151,7 @@ findVar = \case
 findGlobalVar :: Member (State GlobalCtx) r => Text -> Eff r GlobalIx
 findGlobalVar var = do
   ctx@MkGlobalCtx {globals} <- get
-  let (newGlobs, idx) = LM.getOrSet var globals
+  let (newGlobs, idx) = internGlobal var globals
   put (ctx {globals = newGlobs})
   pure idx
 

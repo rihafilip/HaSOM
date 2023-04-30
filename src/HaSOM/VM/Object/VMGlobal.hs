@@ -20,11 +20,11 @@ where
 
 import qualified Data.HashMap.Strict as Map
 import qualified Data.LookupMap as LM
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import Data.Tuple (swap)
 import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
 import HaSOM.VM.Object.VMClass (VMClass)
-import Data.Tuple (swap)
-import Data.Maybe (fromMaybe)
 
 -- | Representation of global object,
 -- parametrized by primitive function type
@@ -40,8 +40,8 @@ data VMGlobals f = MkVMGlobals
   }
 
 -- | Create new globals from list
-newGlobals :: LM.LookupMap Text GlobalIx -> [(GlobalIx, VMGlobal f)] -> VMGlobals f
-newGlobals interner globs = MkVMGlobals {globals = Map.fromList globs, interner}
+newGlobals :: VMGlobals f
+newGlobals = MkVMGlobals {globals = Map.empty, interner = LM.new}
 
 -- | Get global at index
 getGlobal :: GlobalIx -> VMGlobals f -> Maybe (VMGlobal f)
@@ -54,9 +54,9 @@ setGlobal idx g globs@MkVMGlobals {globals} =
 
 -- | Get a global index for given global object
 internGlobal :: Text -> VMGlobals f -> (VMGlobals f, GlobalIx)
-internGlobal txt gl@MkVMGlobals {interner} = (gl{ interner = newInterner }, idx)
+internGlobal txt gl@MkVMGlobals {interner} = (gl {interner = newInterner}, idx)
   where
-    (newInterner, idx) =  LM.getOrSet txt interner
+    (newInterner, idx) = LM.getOrSet txt interner
 
 -- | Get a name for given global object
 getGlobalName :: GlobalIx -> VMGlobals f -> Maybe Text
