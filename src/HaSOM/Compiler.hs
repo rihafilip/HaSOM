@@ -23,7 +23,7 @@ import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.Context
-import qualified HaSOM.Compiler.LookupMap as LM
+import qualified Data.LookupMap as LM
 import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)

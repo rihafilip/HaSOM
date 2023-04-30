@@ -41,8 +41,8 @@ import qualified Data.Bifunctor as Bf
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
 import Data.Text (Text)
-import HaSOM.Compiler.LookupMap (LookupMap)
-import qualified HaSOM.Compiler.LookupMap as LM
+import Data.LookupMap (LookupMap)
+import qualified Data.LookupMap as LM
 import HaSOM.VM.Object hiding (getLiteral)
 import HaSOM.VM.Universe (NativeFun)
 

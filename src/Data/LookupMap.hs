@@ -1,8 +1,8 @@
--- | Compiler helper collection.
+-- | Interning helper collection.
 --
 -- It exposes an interface for giving a new index continuously
 -- for each new given key
-module HaSOM.Compiler.LookupMap
+module Data.LookupMap
   ( -- * Data type defintiion
     LookupMap,
 
