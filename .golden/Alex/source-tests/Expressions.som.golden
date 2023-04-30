@@ -4,8 +4,45 @@ NewTerm
 Identifier foo
 Equal
 NewTerm
+Or
+Identifier ret
+Identifier first
+Identifier last
+Or
+Identifier first
+Assign
+Integer 1
+Period
+Identifier last
+Assign
+Integer 100
+Minus
+Integer 1
+Period
+Identifier first
+Assign
+Identifier last
+Assign
+Identifier last
+Minus
+Identifier first
+Period
+Identifier ret
+Assign
+Identifier first
+Period
+Identifier ret
+Assign
+Identifier ret
+Assign
+Pound
+Identifier foo
+Period
 TExit
 Identifier ret
+Identifier asString
+Plus
+Identifier first
 Period
 EndTerm
 EndTerm

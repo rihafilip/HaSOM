@@ -1,0 +1,84 @@
+Identifier Blocks
+Equal
+NewTerm
+Identifier foo
+Equal
+NewTerm
+NewBlock
+Identifier self
+Identifier foo
+EndBlock
+Period
+NewBlock
+Colon
+Identifier i
+Or
+Identifier i
+Identifier println
+Period
+EndBlock
+Period
+NewBlock
+Colon
+Identifier i
+Colon
+Identifier j
+Colon
+Identifier k
+Or
+Identifier i
+Plus
+Identifier j
+Plus
+Identifier k
+EndBlock
+Period
+NewBlock
+Or
+Identifier a
+Identifier b
+Or
+Identifier a
+Assign
+Integer 1
+Period
+Identifier b
+Assign
+Integer 2
+Period
+TExit
+Integer 10
+Period
+EndBlock
+Period
+NewBlock
+Colon
+Identifier i
+Colon
+Identifier j
+Or
+Or
+Identifier a
+Identifier b
+Identifier c
+Or
+Identifier a
+Assign
+Identifier i
+Period
+Identifier b
+Assign
+Identifier j
+Period
+Identifier c
+Assign
+Identifier a
+Plus
+Identifier b
+Period
+TExit
+Identifier c
+EndBlock
+Period
+EndTerm
+EndTerm

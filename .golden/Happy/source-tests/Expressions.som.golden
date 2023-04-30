@@ -4,8 +4,35 @@ instance variables:
   [  ]
 instance methods:
   (UnaryMethod "foo"
+    (Variables [ ret first last ])
+    (Assign [ first ]
+      (Integer 1)
+    )
+    (Assign [ last ]
+      (BinaryCall "-"
+        (Integer 100)
+        (Integer 1)
+      )
+    )
+    (Assign [ first last ]
+      (BinaryCall "-"
+        (Variable last)
+        (Variable first)
+      )
+    )
+    (Assign [ ret ]
+      (Variable first)
+    )
+    (Assign [ ret ret ]
+      (Symbol foo)
+    )
     (Return 
-      (Variable ret)
+      (BinaryCall "+"
+        (UnaryCall "asString"
+          (Variable ret)
+        )
+        (Variable first)
+      )
     )
   )
 class variables:

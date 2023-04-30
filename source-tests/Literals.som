@@ -1,0 +1,27 @@
+Literals = (
+    symbols = (
+        #abc.
+        # abc.
+
+        #abc1.
+        # abc1.
+
+        #foo:.
+        # foo:.
+
+        #foo:bar:baz:.
+        # foo:bar:baz:.
+    )
+
+    arrays = (
+        | x |
+
+        #().
+        #( 1 2 3 4 ).
+        #( 1.1 2.2 3.3  4.4 ).
+        #( 'a' 'b' 'c' ).
+        #( #a #b #c ).
+        #( 1 'b' #symbol 4.4 ).
+        #( #( 1 2 3 ) #( 4 5 6 )  )
+    )
+)

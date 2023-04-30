@@ -1,0 +1,26 @@
+Blocks = (
+    foo = (
+        [ self foo ].
+
+        [ :i |
+            i println.
+        ].
+
+        [ :i :j :k |
+            i + j + k
+        ].
+
+        [ | a b |
+            a := 1.
+            b := 2.
+            ^ 10.
+        ].
+
+        [ :i :j | | a b c|
+            a := i.
+            b := j.
+            c := a + b.
+            ^c
+        ].
+    )
+)

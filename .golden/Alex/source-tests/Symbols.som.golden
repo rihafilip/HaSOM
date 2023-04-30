@@ -1,0 +1,32 @@
+Identifier SymbolsTest
+Equal
+NewTerm
+Identifier run
+Equal
+NewTerm
+Pound
+Identifier abc
+Period
+Pound
+Identifier abc
+Period
+Pound
+Identifier abc1
+Period
+Pound
+Identifier abc1
+Period
+Pound
+Keyword foo:
+Period
+Pound
+Keyword foo:
+Period
+Pound
+KeywordSequence foo:bar:baz:
+Period
+Pound
+KeywordSequence foo:bar:baz:
+Period
+EndTerm
+EndTerm

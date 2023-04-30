@@ -1,0 +1,63 @@
+name: "Literals"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "symbols"
+    (Symbol abc)
+    (Symbol abc)
+    (Symbol abc1)
+    (Symbol abc1)
+    (Symbol foo:)
+    (Symbol foo:)
+    (Symbol foo:bar:baz:)
+    (Symbol foo:bar:baz:)
+  )
+  (UnaryMethod "arrays"
+    (Variables [ x ])
+    (Array 
+    )
+    (Array 
+      (Integer 1)
+      (Integer 2)
+      (Integer 3)
+      (Integer 4)
+    )
+    (Array 
+      (Double 1.1)
+      (Double 2.2)
+      (Double 3.3)
+      (Double 4.4)
+    )
+    (Array 
+      (String 'a')
+      (String 'b')
+      (String 'c')
+    )
+    (Array 
+      (Symbol a)
+      (Symbol b)
+      (Symbol c)
+    )
+    (Array 
+      (Integer 1)
+      (String 'b')
+      (Symbol symbol)
+      (Double 4.4)
+    )
+    (Array 
+      (Array 
+        (Integer 1)
+        (Integer 2)
+        (Integer 3)
+      )
+      (Array 
+        (Integer 4)
+        (Integer 5)
+        (Integer 6)
+      )
+    )
+  )
+class variables:
+  [  ]
+class methods:

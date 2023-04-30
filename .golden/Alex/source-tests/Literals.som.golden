@@ -1,0 +1,100 @@
+Identifier Literals
+Equal
+NewTerm
+Identifier symbols
+Equal
+NewTerm
+Pound
+Identifier abc
+Period
+Pound
+Identifier abc
+Period
+Pound
+Identifier abc1
+Period
+Pound
+Identifier abc1
+Period
+Pound
+Keyword foo:
+Period
+Pound
+Keyword foo:
+Period
+Pound
+KeywordSequence foo:bar:baz:
+Period
+Pound
+KeywordSequence foo:bar:baz:
+Period
+EndTerm
+Identifier arrays
+Equal
+NewTerm
+Or
+Identifier x
+Or
+Pound
+NewTerm
+EndTerm
+Period
+Pound
+NewTerm
+Integer 1
+Integer 2
+Integer 3
+Integer 4
+EndTerm
+Period
+Pound
+NewTerm
+Double 1.1
+Double 2.2
+Double 3.3
+Double 4.4
+EndTerm
+Period
+Pound
+NewTerm
+STString 'a'
+STString 'b'
+STString 'c'
+EndTerm
+Period
+Pound
+NewTerm
+Pound
+Identifier a
+Pound
+Identifier b
+Pound
+Identifier c
+EndTerm
+Period
+Pound
+NewTerm
+Integer 1
+STString 'b'
+Pound
+Identifier symbol
+Double 4.4
+EndTerm
+Period
+Pound
+NewTerm
+Pound
+NewTerm
+Integer 1
+Integer 2
+Integer 3
+EndTerm
+Pound
+NewTerm
+Integer 4
+Integer 5
+Integer 6
+EndTerm
+EndTerm
+EndTerm
+EndTerm

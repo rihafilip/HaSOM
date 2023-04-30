@@ -1,0 +1,15 @@
+SymbolsTest = (
+    run = (
+        #abc.
+        # abc.
+
+        #abc1.
+        # abc1.
+
+        #foo:.
+        # foo:.
+
+        #foo:bar:baz:.
+        # foo:bar:baz:.
+    )
+)

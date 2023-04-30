@@ -1,0 +1,59 @@
+name: "Blocks"
+superclass: none
+instance variables:
+  [  ]
+instance methods:
+  (UnaryMethod "foo"
+    (Block [  ]
+      (UnaryCall "foo"
+        (Variable self)
+      )
+    )
+    (Block [ i ]
+      (UnaryCall "println"
+        (Variable i)
+      )
+    )
+    (Block [ i j k ]
+      (BinaryCall "+"
+        (BinaryCall "+"
+          (Variable i)
+          (Variable j)
+        )
+        (Variable k)
+      )
+    )
+    (Block [  ]
+      (Variables [ a b ])
+      (Assign [ a ]
+        (Integer 1)
+      )
+      (Assign [ b ]
+        (Integer 2)
+      )
+      (Return 
+        (Integer 10)
+      )
+    )
+    (Block [ i j ]
+      (Variables [ a b c ])
+      (Assign [ a ]
+        (Variable i)
+      )
+      (Assign [ b ]
+        (Variable j)
+      )
+      (Assign [ c ]
+        (BinaryCall "+"
+          (Variable a)
+          (Variable b)
+        )
+      )
+      (Return 
+        (Variable c)
+      )
+    )
+  )
+class variables:
+  [  ]
+class methods:

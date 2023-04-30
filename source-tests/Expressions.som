@@ -1,5 +1,14 @@
 Expressions = (
     foo = (
-        ^ ret.
+        | ret first last |
+
+        first := 1.
+        last := 100 - 1.
+        first := last := last - first.
+
+        ret := first.
+        ret := ret := #foo.
+
+        ^ ret asString + first.
     )
 )

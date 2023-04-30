@@ -29,5 +29,13 @@ Integer 10
 Keyword foo1:
 Identifier f
 Period
+Identifier a
+Plus
+Identifier b
+Plus
+Identifier c
+Plus
+Identifier d
+Period
 EndTerm
 EndTerm

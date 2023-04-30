@@ -39,6 +39,16 @@ instance methods:
         (Variable f)
       )
     )
+    (BinaryCall "+"
+      (BinaryCall "+"
+        (BinaryCall "+"
+          (Variable a)
+          (Variable b)
+        )
+        (Variable c)
+      )
+      (Variable d)
+    )
   )
 class variables:
   [  ]
