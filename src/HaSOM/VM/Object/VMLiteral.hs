@@ -18,8 +18,10 @@ where
 
 import qualified Data.HashMap.Strict as Map
 import Data.Hashable (Hashable (hashWithSalt))
+import qualified Data.LookupMap as LM
 import Data.Text (Text, unpack)
 import Data.Text.Utility ((<+))
+import Data.Tuple (swap)
 import HaSOM.VM.Object.Ix
 import HaSOM.VM.Object.VMBlock (VMBlock)
 
@@ -53,18 +55,33 @@ instance Show VMLiteral where
   show (BlockLiteral _) = "<block>"
 
 -- | Representation of all literals
-newtype VMLiterals = MkVMLiterals {runVMLiterals :: Map.HashMap LiteralIx VMLiteral}
+data VMLiterals = MkVMLiterals
+  { literals :: Map.HashMap LiteralIx VMLiteral,
+    interner :: LM.LookupMap VMLiteral LiteralIx
+  }
 
 -- | Create new literals from list
-newLiterals :: [(LiteralIx, VMLiteral)] -> VMLiterals
-newLiterals = MkVMLiterals . Map.fromList
+newLiterals :: LM.LookupMap VMLiteral LiteralIx -> VMLiterals
+newLiterals int = MkVMLiterals hmap int
+  where
+    hmap = Map.fromList $ map swap $ LM.toList int
 
 -- | Get literal at index
 getLiteral :: LiteralIx -> VMLiterals -> Maybe VMLiteral
-getLiteral idx = Map.lookup idx . runVMLiterals
+getLiteral idx = Map.lookup idx . literals
 
+-- | Get a literal index for given literal
 internLiteral :: VMLiteral -> VMLiterals -> (VMLiterals, LiteralIx)
-internLiteral = undefined -- TODO
+internLiteral lit MkVMLiterals {literals, interner} =
+  ( MkVMLiterals
+      { literals = lits,
+        interner = inter
+      },
+    idx
+  )
+  where
+    (inter, idx) = LM.getOrSet lit interner
+    lits = Map.insert idx lit literals
 
-literalsToList :: VMLiterals -> [(LiteralIx, Text, VMLiteral)]
-literalsToList = undefined . Map.toList . runVMLiterals -- TODO
+literalsToList :: VMLiterals -> [(LiteralIx, VMLiteral)]
+literalsToList = Map.toList . literals

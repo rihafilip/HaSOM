@@ -62,9 +62,9 @@ compile asts gc prims =
 
     finish (((classes, coreClasses), gCollector), MkGlobalCtx {globals, symbols}) =
       MkCompilationResult
-        { globals = newGlobals $ map (Bf.second ClassGlobal) classes,
+        { globals = newGlobals globals $ map (Bf.second ClassGlobal) classes,
           coreClasses,
-          literals = newLiterals $ map swap $ LM.toList symbols,
+          literals = newLiterals symbols,
           gCollector,
           globalsInterner = LM.toHashMap globals,
           symbolsInterner = Map.fromList $ mapMaybe extractSymbol $ LM.toList symbols

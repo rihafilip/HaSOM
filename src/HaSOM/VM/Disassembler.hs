@@ -12,9 +12,10 @@ module HaSOM.VM.Disassembler
 where
 
 import Control.Eff
-import Control.Eff.State.Strict (get, evalState)
+import Control.Eff.State.Strict (evalState, get)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, intercalate, justifyLeft)
+import qualified Data.Text as T
 import Data.Text.Utility
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
@@ -123,8 +124,8 @@ formatList = intercalate "\n\n" . map f
 disassembleLiterals :: VMLiterals -> Text
 disassembleLiterals =
   ("Literals:" <+)
-    . formatList
-    . map (\(a, b, c) -> (a, b, showT c))
+    . T.unlines
+    . map (\(idx, sym) -> formatIdx idx <+ ": " <+ showT sym)
     . literalsToList
 
 disassembleGlobals :: LiteralEff r => VMGlobalsNat -> Eff r Text
