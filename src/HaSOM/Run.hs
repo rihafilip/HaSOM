@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 
-module HaSOM.Run where
+module HaSOM.Run (doScan, doParse, doCompile, doDissasemble, doExecute) where
 
 import Control.Eff
 import Control.Eff.Exception
@@ -27,6 +27,7 @@ import HaSOM.VM.Universe
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitWith)
+import System.FilePath (takeExtension)
 import System.IO (stderr)
 
 type ExecEff r = (Lifted IO r, Member (Exc Int) r)
@@ -57,7 +58,11 @@ doParse fp = do
 
 doCompile :: ExecEff r => [FilePath] -> Eff r CompilationResult
 doCompile files = do
-  classpaths <- lift $ concat <$> mapM collect files
+  classpaths <-
+    lift $
+      filter ((==) ".som" . takeExtension)
+        . concat
+        <$> mapM collect files
   asts <- mapM doParse classpaths
   tryEff
     "Compilation error: "

@@ -54,6 +54,7 @@ library:
   - bytestring
   - hashable
   - extensible-effects
+  - filepath
   - directory
   - dir-traverse
 
