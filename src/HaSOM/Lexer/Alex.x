@@ -14,7 +14,6 @@ import Data.ByteString.Lazy (ByteString)
 
 $digit = 0-9
 $alpha = [a-zA-Z]
-$escaped = [\\t \\b \\n \\r \\f \\0 \\\' \\\\]
 
 tokens :-
   \" (\n | ~\")* \" ;
@@ -62,7 +61,7 @@ tokens :-
   $alpha [$alpha $digit _]* ":"    { tokT Keyword decode }
   ($alpha [$alpha $digit _]* ":")+ { tokT KeywordSequence decode }
 
-  "'" ($escaped | ~[\' \\])* "'" { tokT STString decode }
+  "'" ( "\t" | "\b" | "\n" | "\r" | "\f" | "\0" | "\'" | "\\" | ~[\' \\])* "'" { tokT STString decode }
 
 {
 data PosToken = PosToken AlexPosn Token
