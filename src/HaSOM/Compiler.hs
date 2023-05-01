@@ -12,7 +12,7 @@ import Control.Eff.ExcT
 import Control.Eff.Exception
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
-import Control.Eff.Utility
+import Control.Monad (forM)
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
 import Data.List (intercalate, singleton)
@@ -25,7 +25,6 @@ import Data.Text.Utility ((<+))
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.Context
-import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)
 import HaSOM.VM.Primitive.Type (PrimitiveContainer)
@@ -39,71 +38,30 @@ data CompilationResult = MkCompilationResult
   { globals :: VMGlobalsNat,
     coreClasses :: CoreClasses,
     literals :: VMLiterals,
-    gCollector :: GCNat
+    heap :: [(ObjIx, VMObjectNat)],
+    nilObj :: VMObjectNat
   }
 
 -- | Compile the ASTs
-compile :: [AST.Class] -> GCNat -> [PrimitiveContainer] -> Either Text CompilationResult
-compile asts gc prims =
-  fmap finish $
-    run $
-      runError @Text $
-        runState initGlobalCtx $
-          runState gc $ do
-            compilePrimitives prims
-            compileClasses asts
-            compileCoreClasses
+compile :: [AST.Class] -> [PrimitiveContainer] -> Either Text CompilationResult
+compile asts prims = fmap finish <$> run $ runError @Text $ evalMockGC $ do
+  nilIx <- getIdx
+  runState (initGlobalCtx nilIx) $ do
+    compilePrimitives prims
+    heap <- compileClassesPure asts
+    cc <- compileCoreClasses
+    (nilObj, globsHeap) <- compileGlobalObjects cc
+    pure (heap ++ globsHeap, cc, nilObj)
   where
-    initGlobalCtx = MkGlobalCtx {globals = newGlobals, literals = newLiterals, primitives = Map.empty, nilIx = GC.nil gc}
-
-    finish ((coreClasses, gCollector), MkGlobalCtx {globals, literals}) =
+    initGlobalCtx nilIx = MkGlobalCtx {globals = newGlobals, literals = newLiterals, primitives = Map.empty, nilIx}
+    finish ((heap, coreClasses, nilObj), MkGlobalCtx {globals, literals}) =
       MkCompilationResult
         { globals,
           coreClasses,
           literals,
-          gCollector
+          heap,
+          nilObj
         }
-
-compileClasses :: forall r. (ClassEff r, Member ExcT r, GCEff r) => [AST.Class] -> Eff r ()
-compileClasses asts = completeMap >>= Map.toList .> mapM_ (\(_, (_, idx, clazz)) -> insertClass idx clazz)
-  where
-    partialClasses :: [ClassRes r]
-    partialClasses = map (fold compileAlgebra) asts
-
-    completeMap :: Eff r (Map.HashMap Text (FieldsLookup, GlobalIx, VMClassNat))
-    completeMap = Map.fromList . concat <$> mapM fromPartial partialClasses
-
-    fromPartial :: ClassRes r -> Eff r [(Text, (FieldsLookup, GlobalIx, VMClassNat))]
-    fromPartial MkClassRes {name, supername = mSupername, partialInstanceClass, partialClassClass} = do
-      cmap <- completeMap
-
-      classObjIx <- modifyYield @GCNat GC.new
-      metaclassObjIx <- modifyYield @GCNat GC.new
-
-      -- TODO throws
-      lookupClass <- case mSupername of
-        Nothing -> pure Map.empty
-        Just supername -> throwOnNothing "" $ (\(x, _, _) -> x) <$> Map.lookup supername cmap
-      lookupMetaclass <- case mSupername of
-        Nothing -> pure Map.empty
-        Just supername -> throwOnNothing "" $ (\(x, _, _) -> x) <$> Map.lookup (addMeta supername) cmap
-
-      -- TODO
-      metaclassClass <- throwOnNothing "" $ (\(_, _, x) -> x) <$> Map.lookup "Metaclass" cmap
-
-      (metaLookup, metaGlobalIx, metaCompiled, metaAsObject) <-
-        partialClassClass lookupMetaclass metaclassObjIx metaclassClass
-
-      (classLookup, classGlobalIx, classCompiled, classAsObject) <-
-        partialInstanceClass lookupClass classObjIx metaCompiled
-
-      modify @GCNat $ GC.setAt classObjIx classAsObject
-      modify @GCNat $ GC.setAt metaclassObjIx metaAsObject
-
-      pure
-        [ (name, (classLookup, metaGlobalIx, classCompiled)),
-          (addMeta name, (metaLookup, classGlobalIx, metaCompiled))
-        ]
 
 compileCoreClasses :: ClassEff r => Eff r CoreClasses
 compileCoreClasses = do
@@ -119,6 +77,7 @@ compileCoreClasses = do
   stringClass <- findGlobalVar "String"
   symbolClass <- findGlobalVar "Symbol"
   arrayClass <- findGlobalVar "Array"
+  nilClass <- findGlobalVar "Nil"
   trueClass <- findGlobalVar "True"
   falseClass <- findGlobalVar "False"
   blockClass <- findGlobalVar "Block"
@@ -127,24 +86,93 @@ compileCoreClasses = do
   block3Class <- findGlobalVar "Block3"
   pure MkCoreClasses {..}
 
+compileGlobalObjects :: (ClassEff r, Member ExcT r, Member (State MockGC) r) => CoreClasses -> Eff r (VMObjectNat, [(ObjIx, VMObjectNat)])
+compileGlobalObjects MkCoreClasses {trueClass, falseClass, systemClass, nilClass} = do
+  MkGlobalCtx {nilIx} <- get
+  let mkInstance idx name =
+        get @GlobalCtx >>= HaSOM.Compiler.Context.globals .> getGlobal idx .> \case
+          Nothing -> throwT $ "Could not find " <+ name <+ " class"
+          Just (ClassGlobal cl) -> pure InstanceObject {clazz = cl, fields = newFields cl nilIx}
+          Just (ObjectGlobal _) -> throwT $ "Trying to find class " <+ name <+ ", but found object instead"
+
+  nil <- mkInstance nilClass "Nil"
+  trueIdx <- getIdx
+  true <- mkInstance trueClass "True"
+  falseIdx <- getIdx
+  false <- mkInstance falseClass "False"
+  systemIdx <- getIdx
+  system <- mkInstance systemClass "System"
+
+  pure (nil, [(nilIx, nil), (trueIdx, true), (falseIdx, false), (systemIdx, system)])
+
+------------------------------------------------------------
+-- Compile pure
+
+type PureClasses = (Map.HashMap Text (Either AST.Class PartialClass))
+
+compileClassesPure :: (ClassEff r, Member ExcT r, Member (State MockGC) r) => [AST.Class] -> Eff r [(ObjIx, VMObjectNat)]
+compileClassesPure asts = do
+  -- The map of uncompiled classes
+  let astMap = Map.fromList $ map (\ast -> (AST.name ast, Left ast)) asts
+  -- Compile classes without meta class
+  partials <- catMaybes <$> evalState @PureClasses astMap (forM asts runAst)
+  -- Get the metaclass
+  (metaclass, _, _, _) <- throwOnNothing "Class 'Metaclass' not defined" (lookup "Metaclass" partials)
+
+  -- finish the classes
+  concat <$> forM partials (finishClass metaclass)
+  where
+    runAst ast = runFail $ do
+      MkPartialClass {partialClasses} <- compileSingleClassPure [] ast
+      (AST.name ast,) <$> (partialClasses <$> getIdx <*> getIdx)
+
+    finishClass metaclass (name, (instanceClass, instanceAsObj, metaClass, partMetaAsObj)) = do
+      -- Add instance class to globals
+      classIx <- findGlobalVar name
+      insertClass classIx instanceClass
+
+      -- Add metaclass to globals
+      metaIx <- findGlobalVar (addMeta name)
+      insertClass metaIx metaClass
+
+      -- Return the objects and their index in heap
+      let metaAsObj = partMetaAsObj metaclass
+      pure [(asObject instanceClass, instanceAsObj), (asObject metaClass, metaAsObj)]
+
+compileSingleClassPure ::
+  (Member (State PureClasses) r, Member Fail r, ClassEff r) =>
+  [Text] ->
+  AST.Class ->
+  Eff r PartialClass
+compileSingleClassPure previous ast
+  | classname `elem` previous = die -- Prevent cyclical inheritance
+  | otherwise = do
+      superC <- sequence $ AST.superclass ast <&> findClass
+
+      let (superclassF, metasuperclassF) =
+            case superC of
+              Nothing -> (Map.empty, Map.empty)
+              Just MkPartialClass {classFields, metaclassFields} -> (classFields, metaclassFields)
+
+      partial <- fold compileAlgebra ast superclassF metasuperclassF
+      modify @PureClasses $ Map.insert classname (Right partial)
+      pure partial
+  where
+    classname = AST.name ast
+    findClass supername =
+      get >>= Map.lookup supername .> \case
+        Nothing -> die
+        Just (Left superAst) -> compileSingleClassPure (classname : previous) superAst
+        Just (Right compiled) -> pure compiled
+
 ------------------------------------------------------------
 -- Algebra results
 
--- Class
-data ClassRes r = MkClassRes
-  { name :: Text,
-    supername :: Maybe Text,
-    partialInstanceClass :: PartialClass r,
-    partialClassClass :: PartialClass r
+data PartialClass = MkPartialClass
+  { classFields :: FieldsLookup,
+    metaclassFields :: FieldsLookup,
+    partialClasses :: ObjIx -> ObjIx -> (VMClassNat, VMObjectNat, VMClassNat, VMClassNat -> VMObjectNat)
   }
-
--- superfields -> new object index -> class of class-as-object -> compiled class
-type PartialClass r =
-  ClassEff r =>
-  FieldsLookup ->
-  ObjIx ->
-  VMClassNat ->
-  Eff r (FieldsLookup, GlobalIx, VMClassNat, VMObjectNat)
 
 -- Method
 type MethodRes = Maybe (LiteralIx, VMMethodNat) -- Ix of method, compiled method
@@ -178,36 +206,42 @@ sequenceCode es = fmap snd <$> sequence es
 compileAlgebra ::
   ClassEff r =>
   Algebra
-    (ClassRes r)
+    (FieldsLookup -> FieldsLookup -> Eff r PartialClass)
     (Eff (Reader ClassCtx : r) MethodRes)
     (Eff (Reader BlockCtx : Reader ClassCtx : r) BlockRes)
     (Eff (Reader BlockCtx : Reader ClassCtx : r) ExprRes)
 compileAlgebra = MkAlgebra {..}
   where
-    clazz name mSupername instanceF instanceM classF classM =
-      MkClassRes {name, supername, partialInstanceClass, partialClassClass}
-      where
-        supername =
-          case mSupername of
-            Nothing -> Just "Object"
-            Just "nil" -> Nothing
-            s -> s
+    clazz name mSupername instanceF instanceM classF classM superclassF metasuperclassF = do
+      let supername =
+            case mSupername of
+              Nothing -> Just "Object"
+              Just "nil" -> Nothing
+              s -> s
 
-        -- Instance class
-        partialInstanceClass =
-          compileClass
-            name
-            supername
-            instanceF
-            instanceM
+      (classFields, partialInstanceClass, partialInstanceAsObj) <-
+        compileClass
+          name
+          supername
+          instanceF
+          instanceM
+          superclassF
 
-        -- Class class
-        partialClassClass =
-          compileClass
-            (addMeta name)
-            (addMeta <$> supername)
-            classF
-            classM
+      (metaclassFields, partialMetaclassClass, partialMetaclassAsObj) <-
+        compileClass
+          (addMeta name)
+          (addMeta <$> supername)
+          classF
+          classM
+          metasuperclassF
+
+      let partialClasses idx1 idx2 =
+            let inClassC = partialInstanceClass idx1
+                metaClassC = partialMetaclassClass idx2
+                inAsObjC = partialInstanceAsObj metaClassC
+             in (inClassC, inAsObjC, metaClassC, partialMetaclassAsObj)
+
+      pure MkPartialClass {..}
 
     ---------------------------------------------------
     -- Native method
@@ -327,7 +361,7 @@ compileAlgebra = MkAlgebra {..}
         GlobalVar gi -> expr [PUSH_GLOBAL gi]
         FieldVar fi -> expr [PUSH_FIELD fi]
         LocalVar li li' -> expr [PUSH_LOCAL li li']
-        SuperVar li -> super [PUSH_FIELD li]
+        SuperVar li li' -> super [PUSH_LOCAL li li']
 
     literal = (expr . singleton . PUSH_LITERAL <$>) . transformLiteral
 
@@ -340,8 +374,9 @@ compileClass ::
   Maybe Identifier ->
   [Variable] ->
   [Eff (Reader ClassCtx : r) MethodRes] ->
-  PartialClass r
-compileClass name supername thisFields methods superFields asObjectIx asObjectClass = do
+  FieldsLookup ->
+  Eff r (FieldsLookup, ObjIx -> VMClassNat, VMClassNat -> VMObjectNat)
+compileClass name supername thisFields methods superFields = do
   MkGlobalCtx {nilIx} <- get
 
   -- Create fields
@@ -361,26 +396,24 @@ compileClass name supername thisFields methods superFields asObjectIx asObjectCl
   -- Get superclass ix (if there is one)
   superclass <- traverse findGlobalVar supername
 
-  -- Create class
-  let clazz =
+  -- Get this class ix
+  thisClassIx <- findGlobalVar name
+
+  let clazz asObjectIx =
         MkVMClass
           { fieldsCount = length fields,
             superclass,
             asObject = asObjectIx,
             methods = cMethods
           }
-
-  -- This class as object
-  thisClassIx <- findGlobalVar name
-  let object =
+  let object asObjectClass =
         ClassObject
           { clazz = asObjectClass,
             fields = newFields asObjectClass nilIx,
             classOf = thisClassIx
           }
 
-  -- result
-  pure (fields, thisClassIx, clazz, object)
+  pure (fields, clazz, object)
 
 ------------------------------------------------------------
 -- Block compile
@@ -406,7 +439,7 @@ compileSingleAssign var = do
     findVar var <&> \case
       GlobalVar gi -> SET_GLOBAL gi
       FieldVar fi -> SET_FIELD fi
-      SuperVar li -> SET_FIELD li
+      SuperVar li li' -> SET_LOCAL li li'
       LocalVar li li' -> SET_LOCAL li li'
   pure [DUP, v]
 

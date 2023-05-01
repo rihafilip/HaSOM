@@ -12,6 +12,11 @@ module HaSOM.Compiler.Context
     -- ** Fields lookup map alias
     FieldsLookup,
 
+    -- * Mock GC
+    MockGC,
+    evalMockGC,
+    getIdx,
+
     -- * Effects definition
     ClassEff,
     MethodEff,
@@ -26,7 +31,7 @@ module HaSOM.Compiler.Context
     insertClass,
 
     -- * Variable lookup helpers
-    VarRes(..),
+    VarRes (..),
     findVar,
     findGlobalVar,
     findClassVar,
@@ -38,12 +43,13 @@ import Control.Applicative ((<|>))
 import Control.Eff
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
+import Control.Eff.Utility (modifyYield)
 import qualified Data.Bifunctor as Bf
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
-import Data.Text (Text)
 import Data.LookupMap (LookupMap)
 import qualified Data.LookupMap as LM
+import Data.Text (Text)
 import HaSOM.VM.Object hiding (getLiteral)
 import HaSOM.VM.Universe
 
@@ -72,6 +78,17 @@ data BlockCtx
       { previous :: BlockCtx,
         locals :: LookupMap Text LocalIx
       }
+
+------------------------------------------------------------
+-- Mock GC
+
+newtype MockGC = MkMockGC Int
+
+evalMockGC :: Eff (State MockGC : r) a -> Eff r a
+evalMockGC = evalState (MkMockGC 1)
+
+getIdx :: Member (State MockGC) r => Eff r ObjIx
+getIdx = modifyYield $ \(MkMockGC i) -> (MkMockGC (i + 1), ix i)
 
 ------------------------------------------------------------
 -- Effects
@@ -129,16 +146,16 @@ insertClass idx clazz = do
 data VarRes
   = GlobalVar GlobalIx
   | FieldVar FieldIx
-  | SuperVar FieldIx
+  | SuperVar LocalIx LocalIx
   | LocalVar LocalIx LocalIx -- EnvironmentIx, Local
 
 -- | Find variable
 findVar :: ExprEff r => Text -> Eff r VarRes
 findVar = \case
   "super" ->
-    findClassVar "self" >>= \case
+    findBlockVar "self" >>= \case
       Nothing -> error "self not found when looking for super"
-      Just fi -> pure $ SuperVar fi
+      Just (li, li') -> pure $ SuperVar li li'
   var ->
     findBlockVar var >>= \case
       Just l -> pure $ uncurry LocalVar l

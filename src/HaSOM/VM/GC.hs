@@ -4,6 +4,7 @@ module HaSOM.VM.GC
     empty,
     nil,
     new,
+    fromList,
     getAt,
     setAt,
   )
@@ -23,6 +24,13 @@ data GC a = MkGC
 -- | Create a new empty GC with given nil object
 empty :: a -> GC a
 empty nilObj = MkGC (0 `Map.singleton` nilObj) nilObj
+
+-- | Create a new empty GC with given nil object
+-- and with objects on given indices
+fromList :: a -> [(ObjIx, a)] -> GC a
+fromList nilObj objs = MkGC heap nilObj
+  where
+    heap = foldl (\h (idx, val) -> Map.insert idx val h ) (0 `Map.singleton` nilObj) objs
 
 -- | Get the index of nil object
 nil :: GC a -> ObjIx

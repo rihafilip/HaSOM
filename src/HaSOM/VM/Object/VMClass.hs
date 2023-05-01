@@ -31,7 +31,7 @@ data CoreClasses = MkCoreClasses
     stringClass :: GlobalIx,
     symbolClass :: GlobalIx,
     arrayClass :: GlobalIx,
-    -- nilClass :: GlobalIx,
+    nilClass :: GlobalIx,
     trueClass :: GlobalIx,
     falseClass :: GlobalIx,
     -- block

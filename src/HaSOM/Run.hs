@@ -67,7 +67,7 @@ doCompile files = do
   tryEff
     "Compilation error: "
     103
-    (compile asts (GC.empty undefined) defaultPrimitives) -- TODO gc
+    (compile asts defaultPrimitives)
   where
     collect fp =
       doesDirectoryExist fp >>= \case
@@ -85,10 +85,11 @@ doDissasemble MkCompilationResult {globals, literals} =
         <+ gl
 
 doExecute :: Text -> [Text] -> CompilationResult -> IO ()
-doExecute clazz args MkCompilationResult {globals, coreClasses, literals, gCollector} =
+doExecute clazz args MkCompilationResult {..} =
   do
     let cs = (emptyStack :: CallStackNat)
     let os = (emptyStack :: ObjStack)
+    let gc = (GC.fromList nilObj heap :: GCNat)
 
     (((((res, fGC), fLits), fCallSt), fGlobs), fStack) <-
       runLift $
@@ -97,7 +98,7 @@ doExecute clazz args MkCompilationResult {globals, coreClasses, literals, gColle
             runReader coreClasses $
               runState cs $
                 runState literals $
-                  runState gCollector $
+                  runState gc $
                     runError @Text
                       (bootstrap clazz args >> interpret)
 
