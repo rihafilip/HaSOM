@@ -21,7 +21,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.LookupMap as LM
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Data.Text.Utility ((<+))
+import Data.Text.Utility ((<+), showT)
 import HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.Context
@@ -111,18 +111,19 @@ compileGlobalObjects MkCoreClasses {trueClass, falseClass, systemClass, nilClass
 type PureClasses = (Map.HashMap Text (Either AST.Class PartialClass))
 
 compileClassesPure :: (ClassEff r, Member ExcT r, Member (State MockGC) r) => [AST.Class] -> Eff r [(ObjIx, VMObjectNat)]
-compileClassesPure asts = do
+compileClassesPure initialAsts  = do
+  let asts = map changeSupernameClass initialAsts
   -- The map of uncompiled classes
   let astMap = Map.fromList $ map (\ast -> (AST.name ast, Left ast)) asts
   -- Compile classes without meta class
-  partials <- catMaybes <$> evalState @PureClasses astMap (forM asts runAst)
+  partials <- evalState @PureClasses astMap (forM asts runAst)
   -- Get the metaclass
   (metaclass, _, _, _) <- throwOnNothing "Class 'Metaclass' not defined" (lookup "Metaclass" partials)
 
   -- finish the classes
   concat <$> forM partials (finishClass metaclass)
   where
-    runAst ast = runFail $ do
+    runAst ast = do
       MkPartialClass {partialClasses} <- compileSingleClassPure [] ast
       (AST.name ast,) <$> (partialClasses <$> getIdx <*> getIdx)
 
@@ -139,13 +140,20 @@ compileClassesPure asts = do
       let metaAsObj = partMetaAsObj metaclass
       pure [(asObject instanceClass, instanceAsObj), (asObject metaClass, metaAsObj)]
 
+    changeSupernameClass ast = ast {AST.superclass = actualSuperclass}
+      where
+        actualSuperclass = case AST.superclass ast of
+          Nothing -> Just "Object"
+          Just "nil" -> Nothing
+          s -> s
+
 compileSingleClassPure ::
-  (Member (State PureClasses) r, Member Fail r, ClassEff r) =>
+  (Member (State PureClasses) r, Member ExcT r, ClassEff r) =>
   [Text] ->
   AST.Class ->
   Eff r PartialClass
 compileSingleClassPure previous ast
-  | classname `elem` previous = die -- Prevent cyclical inheritance
+  | classname `elem` previous = throwT $ "Cyclical inheritance: " <+ showT previous  -- Prevent cyclical inheritance
   | otherwise = do
       superC <- sequence $ AST.superclass ast <&> findClass
 
@@ -161,7 +169,7 @@ compileSingleClassPure previous ast
     classname = AST.name ast
     findClass supername =
       get >>= Map.lookup supername .> \case
-        Nothing -> die
+        Nothing -> throwT $ "Could not find superclass " <+ supername
         Just (Left superAst) -> compileSingleClassPure (classname : previous) superAst
         Just (Right compiled) -> pure compiled
 
@@ -212,13 +220,7 @@ compileAlgebra ::
     (Eff (Reader BlockCtx : Reader ClassCtx : r) ExprRes)
 compileAlgebra = MkAlgebra {..}
   where
-    clazz name mSupername instanceF instanceM classF classM superclassF metasuperclassF = do
-      let supername =
-            case mSupername of
-              Nothing -> Just "Object"
-              Just "nil" -> Nothing
-              s -> s
-
+    clazz name supername instanceF instanceM classF classM superclassF metasuperclassF = do
       (classFields, partialInstanceClass, partialInstanceAsObj) <-
         compileClass
           name
