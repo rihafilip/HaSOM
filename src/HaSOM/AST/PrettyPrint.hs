@@ -1,17 +1,11 @@
-{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonadComprehensions #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# HLINT ignore "Eta reduce" #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Definition of pretty printing on AST
 module HaSOM.AST.PrettyPrint (prettyPrintAST) where
 
-import Control.Eff ( Eff, run, type (<::) )
-import Control.Eff.Reader.Strict
-import Control.Eff.Writer.Strict
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
@@ -19,41 +13,14 @@ import qualified Data.Text as T
 import Data.Text.Utility ((<+))
 import HaSOM.AST
 import HaSOM.AST.Algebra
-
-type PrettyPrintEff r = [Reader Int, Writer Text] <:: r
+import Data.PrettyPrint
+import Control.Eff (Eff, run)
 
 -----------------------------------------------
 
 -- | Pretty print Class
 prettyPrintAST :: Class -> Text
-prettyPrintAST =
-  T.unlines
-    . run
-    . (execListWriter @Text)
-    . runReader (0 :: Int)
-    . fold prettyPrintAlgerba
-
------------------------------------------------
-
-indented :: PrettyPrintEff r => Eff r () -> Eff r ()
-indented f = do
-  (currIndent :: Int) <- ask
-  local (const $ currIndent + 1) f
-
-addLine :: PrettyPrintEff r => Text -> Eff r ()
-addLine str = do
-  (indentSize :: Int) <- ask
-  let indentatiton = T.replicate indentSize "  "
-  tell $ indentatiton <+ str
-
-(.:) :: PrettyPrintEff r => Text -> Text -> Eff r ()
-name .: value = addLine (name <+ ": " <+ value)
-
------------------------------------------------
-
--- | Print bracketed single line
-(<#>) :: PrettyPrintEff r => Text -> Text -> Eff r ()
-name <#> field = addLine $ "(" <+ name <+ " " <+ field <+ ")"
+prettyPrintAST = run . runPrettyPrint . fold prettyPrintAlgerba
 
 -- | Print bracketed multiline
 --
@@ -70,14 +37,6 @@ bracketMultiline name fields subexpr = do
   addLine $ "(" <+ name <+ " " <+ T.unwords fields
   indented subexpr
   addLine ")"
-
------------------------------------------------
-
-formatList :: [Text] -> Text
-formatList list = "[ " <+ T.unwords list <+ " ]"
-
-quote :: Text -> Text
-quote = ("\"" <+) . (<+ "\"")
 
 -----------------------------------------------
 

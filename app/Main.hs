@@ -77,7 +77,7 @@ main = do
           >>= TIO.putStrLn . prettyPrintAST
       Compile fps ->
         wrap (doCompile fps)
-          >>= TIO.putStrLn . doDissasemble
+          >>= TIO.putStrLn . doDisassemble
       Exec {mainClass, classpath, arguments} ->
         wrap (doCompile classpath)
           >>= doExecute mainClass arguments

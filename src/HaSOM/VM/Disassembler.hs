@@ -2,134 +2,212 @@
 {-# LANGUAGE TypeApplications #-}
 
 module HaSOM.VM.Disassembler
-  ( dissasembleBytecodeIns,
-    dissasembleBytecode,
-    dissasembleMethod,
-    dissasembleClass,
-    disassembleLiterals,
+  ( disassembleLiterals,
     disassembleGlobals,
+    disassembleClassSimple,
   )
 where
 
-import Control.Eff
+import Combinator ((.>))
+import Control.Eff (Eff)
 import Control.Eff.State.Strict (evalState, get)
+import Data.List (sortOn)
 import Data.Maybe (fromMaybe)
-import Data.Text (Text, intercalate, justifyLeft)
-import qualified Data.Text as T
+import Data.PrettyPrint
+import Data.Text (Text, justifyRight)
 import Data.Text.Utility
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 
 formatIdx :: VMIx i => i -> Text
-formatIdx = justifyLeft 2 '0' . showT . getIx
+formatIdx = justifyRight 4 '0' . showT . getIx
 
 infixr 5 <->
 
 (<->) :: Text -> Text -> Text
 l <-> r = l <+ " " <+ r
 
-infixr 5 <\>
-
-(<\>) :: Text -> Text -> Text
-l <\> r = l <+ "\n" <+ r
-
 -----------------------------------------------------------
 
-dissasembleBytecodeIns :: Bytecode -> Text
-dissasembleBytecodeIns =
-  \case
-    HALT -> "HALT"
-    DUP -> "DUP"
-    POP -> "POP"
-    PUSH_LITERAL li -> "PUSH_LITERAL" <-> formatIdx li
-    PUSH_LOCAL li li' -> "PUSH_LOCAL" <-> formatIdx li <-> formatIdx li'
-    PUSH_FIELD fi -> "PUSH_FIELD" <-> formatIdx fi
-    PUSH_GLOBAL gi -> "PUSH_GLOBAL" <-> formatIdx gi
-    SET_LOCAL li li' -> "SET_LOCAL" <-> formatIdx li <-> formatIdx li'
-    SET_FIELD fi -> "SET_FIELD" <-> formatIdx fi
-    SET_GLOBAL gi -> "SET_GLOBAL" <-> formatIdx gi
-    CALL li -> "CALL" <-> formatIdx li
-    SUPER_CALL li -> "SUPER_CALL" <-> formatIdx li
-    RETURN -> "RETURN"
-    NONLOCAL_RETURN -> "NONLOCAL_RETURN"
+literalName :: (LiteralEff r) => LiteralIx -> Eff r Text
+literalName idx = maybe "??" showT . getLiteral idx <$> get
 
-dissasembleBytecode :: Code -> Text
-dissasembleBytecode = foldl (<\>) "" . zipWith f [0 ..] . codeAsList
-  where
-    f :: Int -> Bytecode -> Text
-    f idx ins =
-      justifyLeft 4 '0' (showT idx)
-        <-> dissasembleBytecodeIns ins
-
------------------------------------------------------------
--- stackTrace :: (GCEff r, Lifted IO r) => CallStackNat -> Eff r [Text]
--- stackTrace = St.pop .> \case
---    Nothing -> pure []
---    Just (st, it) -> do
---     cf <- stackItem it
---     rest <- stackTrace st
---     pure (cf : rest)
---   where
---     stackItem (PureCallFrame cf) = callFrame cf
---     stackItem (ReferenceCallFrame cf) = lreadIORef cf >>= callFrame
---     callFrame cf = do
---       let m = method cf
---       let (ptr, sig) = case m of
---             BytecodeMethod{signature} -> (showT $ getIx $ pc cf, signature)
---             NativeMethod{signature} -> ("<primitive>", signature)
---       _
-
-dissasembleMethod :: Text -> VMMethodNat -> Text
-dissasembleMethod name BytecodeMethod {body, parameterCount, localCount} =
-  "Name :"
-    <+ name
-    <\> "Local count: "
-    <+ showT localCount
-    <\> "Parameters count: "
-    <+ showT parameterCount
-    <\> "Body:"
-    <\> dissasembleBytecode body
-dissasembleMethod name NativeMethod {parameterCount} =
-  "Name :"
-    <+ name
-    <\> "Parameters count: "
-    <+ showT parameterCount
-    <\> "Body:\n<native>"
-
-dissasembleClass :: (GlobalsEff r, LiteralEff r) => VMClassNat -> Eff r Text
-dissasembleClass MkVMClass {fieldsCount, superclass, methods} = do
-  superclassT <- maybe (pure "none") className superclass
-  ms <- mapM (\(idx, m) -> (,m) <$> literalName idx) $ methodsAsList methods
-
-  pure
-    ( "Fields count: "
-        <+ showT fieldsCount
-        <\> "Superclass: "
-        <+ superclassT
-        <\> "Methods:"
-        <\> intercalate "\n\n" (map (uncurry dissasembleMethod) ms)
-    )
+globalName :: GlobalsEff r => GlobalIx -> Eff r Text
+globalName idx = fromMaybe "??" . getGlobalName idx <$> get @VMGlobalsNat
 
 className :: GlobalsEff r => GlobalIx -> Eff r Text
 className idx = fromMaybe "??" . getGlobalName idx <$> get @VMGlobalsNat
 
-literalName :: LiteralEff r => LiteralIx -> Eff r Text
-literalName idx = maybe "??" showT . getLiteral idx <$> get
+-----------------------------------------------------------
 
-formatList :: VMIx i => [(i, Text, Text)] -> Text
-formatList = intercalate "\n\n" . map f
+formatBlock :: (LiteralEff r, GlobalsEff r, PrettyPrintEff r) => VMBlock -> Eff r ()
+formatBlock MkVMBlock {blockBody, blockParameterCount, blockLocalCount} = do
+  "Parameters count" .: showT blockParameterCount
+  "Locals count" .: showT blockLocalCount
+  disassembleBytecode_ blockBody
+
+-----------------------------------------------------------
+
+insWithComment :: VMIx i => Text -> i -> Text -> Text
+insWithComment ins idx comment = ins <-> formatIdx idx <-> ":" <+ comment
+
+disassembleBytecodeIns :: (GlobalsEff r, LiteralEff r) => Bytecode -> Eff r Text
+disassembleBytecodeIns (PUSH_LITERAL li) =
+  insWithComment "PUSH_LITERAL" li
+    <$> literalName li
+disassembleBytecodeIns (PUSH_GLOBAL gi) =
+  insWithComment "PUSH_GLOBAL" gi
+    <$> globalName gi
+disassembleBytecodeIns (SET_GLOBAL gi) =
+  insWithComment "SET_GLOBAL" gi
+    <$> globalName gi
+disassembleBytecodeIns (CALL li) =
+  insWithComment "CALL" li
+    <$> literalName li
+disassembleBytecodeIns (SUPER_CALL li) =
+  insWithComment "SUPER_CALL" li
+    <$> literalName li
+disassembleBytecodeIns (PUSH_LOCAL 0 0) =
+  pure $
+    "PUSH_LOCAL"
+      <-> formatIdx (ix @LocalIx 0)
+      <-> formatIdx (ix @LocalIx 0)
+      <-> ":self"
+disassembleBytecodeIns bc =
+  pure $ case bc of
+    HALT -> "HALT"
+    DUP -> "DUP"
+    POP -> "POP"
+    PUSH_LOCAL li li' -> "PUSH_LOCAL" <-> formatIdx li <-> formatIdx li'
+    PUSH_FIELD fi -> "PUSH_FIELD" <-> formatIdx fi
+    SET_LOCAL li li' -> "SET_LOCAL" <-> formatIdx li <-> formatIdx li'
+    SET_FIELD fi -> "SET_FIELD" <-> formatIdx fi
+    RETURN -> "RETURN"
+    NONLOCAL_RETURN -> "NONLOCAL_RETURN"
+
+disassembleBytecode_ :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => Code -> Eff r ()
+disassembleBytecode_ = indented . mapM_ (>>= addLine) . zipWith f [0 ..] . codeAsList
   where
-    f (idx, name, x) = formatIdx idx <+ ": " <+ name <\> x
+    f :: (GlobalsEff r, LiteralEff r) => Int -> Bytecode -> Eff r Text
+    f idx ins = do
+      insT <- disassembleBytecodeIns ins
+      pure $ justifyRight 4 '0' (showT idx) <-> insT
 
-disassembleLiterals :: VMLiterals -> Text
+-----------------------------------------------------------
+
+disassembleMethod_ :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => Text -> VMMethodNat -> Eff r ()
+disassembleMethod_ name BytecodeMethod {body, parameterCount, localCount} = do
+  "Name" .: name
+  "Local count" .: showT localCount
+  "Parameters count" .: showT parameterCount
+  addLine "Body:"
+  indented $ disassembleBytecode_ body
+disassembleMethod_ name NativeMethod {parameterCount} = do
+  "Name" .: name
+  "Parameters count" .: showT parameterCount
+  "Body" .: "<native>"
+
+-----------------------------------------------------------
+
+disassembleClass_ :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => VMClassNat -> Eff r ()
+disassembleClass_ MkVMClass {fieldsCount, superclass, methods} = do
+  superclassT <- maybe (pure "none") className superclass
+  ms <- mapM (\(idx, m) -> (,m) <$> literalName idx) $ methodsAsList methods
+
+  "Superclass" .: quote superclassT
+  "Fields count" .: showT fieldsCount
+  addLine "Methods:"
+  indented $ mapM_ (\(n, m) -> disassembleMethod_ n m >> addLine "") ms
+
+-----------------------------------------------------------
+
+disassembleLiterals :: (GlobalsEff r, LiteralEff r) => VMLiterals -> Eff r Text
 disassembleLiterals =
-  ("Literals:" <+)
-    . T.unlines
-    . map (\(idx, sym) -> formatIdx idx <+ ": " <+ showT sym)
-    . literalsToList
+  runPrettyPrint . \lits -> do
+    addLine "Literals:"
+    indented $
+      mapM_ (uncurry transf) $
+        sortOn fst $
+          literalsToList lits
+  where
+    transf idx (BlockLiteral blck) = do
+      formatIdx idx .: "<block>"
+      indented $ formatBlock blck
+    transf idx lit = formatIdx idx .: showT lit
 
 disassembleGlobals :: LiteralEff r => VMGlobalsNat -> Eff r Text
-disassembleGlobals gs = ("Globals:" <+) . formatList <$> mapM f (globalsToList gs)
+disassembleGlobals =
+  runPrettyPrint . \gs -> do
+    addLine "Globals:"
+    indented $ mapM_ (evalState gs . f) $ sortOn (\(x, _, _) -> x) $ globalsToList gs
   where
-    f (a, b, ClassGlobal cl) = (a,b,) <$> evalState gs (dissasembleClass cl)
-    f (a, b, ObjectGlobal oi) = pure (a, b, "object " <+ showT (getIx oi))
+    f (idx, name, ClassGlobal cl) = do
+      showT idx .: quote name
+      indented $ disassembleClass_ cl
+      addLine ""
+    f (idx, name, ObjectGlobal oi) = do
+      showT idx .: quote name
+      indented $ "GlobalObject" .: showT oi
+      addLine ""
+
+-----------------------------------------------------------
+
+disassembleClassSimple :: (GlobalsEff r, LiteralEff r) => Text -> Eff r Text
+disassembleClassSimple name = runPrettyPrint $ do
+  "Name" .: name
+  get @VMGlobalsNat >>= \globs -> case getGlobal (snd $ internGlobal name globs) globs of
+    Just (ClassGlobal MkVMClass {fieldsCount, superclass, methods}) -> do
+      superclassT <- maybe (pure "none") className superclass
+      ms <- mapM (\(midx, m) -> (,m) <$> literalName midx) $ methodsAsList methods
+
+      "Superclass" .: quote superclassT
+      "Fields count" .: showT fieldsCount
+      addLine "Methods:"
+      indented $ mapM_ (\(n, m) -> disassembleMethodSimple n m >> addLine "") ms
+    _ -> addLine "Not a class"
+
+disassembleMethodSimple :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => Text -> VMMethodNat -> Eff r ()
+disassembleMethodSimple name BytecodeMethod {body, parameterCount, localCount} = do
+  "Name" .: name
+  "Local count" .: showT localCount
+  "Parameters count" .: showT parameterCount
+  addLine "Body:"
+  indented $ disassembleBytecodeSimple body
+disassembleMethodSimple name NativeMethod {parameterCount} = do
+  "Name" .: name
+  "Parameters count" .: showT parameterCount
+  "Body" .: "<native>"
+
+disassembleBytecodeSimple :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => Code -> Eff r ()
+disassembleBytecodeSimple = mapM_ disassembleBytecodeInsSimple . codeAsList
+
+disassembleBytecodeInsSimple :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => Bytecode -> Eff r ()
+disassembleBytecodeInsSimple (PUSH_LITERAL li) = do
+  get @VMLiterals >>= getLiteral li .> \case
+    Just (BlockLiteral MkVMBlock {blockBody, blockParameterCount, blockLocalCount}) -> do
+      addLine $
+        "PUSH_LITERAL"
+          <-> "<block>"
+          <-> "params:"
+          <-> showT blockParameterCount
+          <-> "locals:"
+          <-> showT blockLocalCount
+      indented $ disassembleBytecodeSimple blockBody
+    Nothing -> addLine $ "PUSH_LITERAL" <-> "??"
+    Just lit -> addLine $ "PUSH_LITERAL" <-> showT lit
+disassembleBytecodeInsSimple (PUSH_GLOBAL gi) = globalName gi >>= ("PUSH_GLOBAL" <->) .> addLine
+disassembleBytecodeInsSimple (SET_GLOBAL gi) = globalName gi >>= ("SET_GLOBAL" <->) .> addLine
+disassembleBytecodeInsSimple (CALL li) = literalName li >>= ("CALL" <->) .> addLine
+disassembleBytecodeInsSimple (SUPER_CALL li) = literalName li >>= ("SUPER_CALL" <->) .> addLine
+disassembleBytecodeInsSimple (PUSH_LOCAL 0 0) = addLine $ "PUSH_LOCAL" <-> ":self"
+disassembleBytecodeInsSimple bc =
+  addLine $ case bc of
+    HALT -> "HALT"
+    DUP -> "DUP"
+    POP -> "POP"
+    PUSH_LOCAL li li' -> "PUSH_LOCAL" <-> formatIdx li <-> formatIdx li'
+    PUSH_FIELD fi -> "PUSH_FIELD" <-> formatIdx fi
+    SET_LOCAL li li' -> "SET_LOCAL" <-> formatIdx li <-> formatIdx li'
+    SET_FIELD fi -> "SET_FIELD" <-> formatIdx fi
+    RETURN -> "RETURN"
+    NONLOCAL_RETURN -> "NONLOCAL_RETURN"

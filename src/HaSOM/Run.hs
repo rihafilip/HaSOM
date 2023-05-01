@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 
-module HaSOM.Run (doScan, doParse, doCompile, doDissasemble, doExecute) where
+module HaSOM.Run (doScan, doParse, doCompile, doDisassemble, doExecute) where
 
 import Control.Eff
 import Control.Eff.Exception
@@ -77,12 +77,12 @@ doCompile files = do
             True -> [fp]
             False -> []
 
-doDissasemble :: CompilationResult -> Text
-doDissasemble MkCompilationResult {globals, literals} =
-  let gl = run $ evalState literals $ disassembleGlobals globals
-   in disassembleLiterals literals
-        <+ "\n\n"
-        <+ gl
+doDisassemble :: CompilationResult -> Text
+doDisassemble MkCompilationResult {globals, literals} =
+  run $ evalState literals $ evalState globals $ do
+      gls <- disassembleGlobals globals
+      lits <- disassembleLiterals literals
+      pure $ lits <+ "\n\n" <+ gls
 
 doExecute :: Text -> [Text] -> CompilationResult -> IO ()
 doExecute clazz args MkCompilationResult {..} =
