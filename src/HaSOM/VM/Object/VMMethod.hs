@@ -15,7 +15,7 @@ module HaSOM.VM.Object.VMMethod
   )
 where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Strict as Map
 import HaSOM.VM.Object.Bytecode (Code)
 import HaSOM.VM.Object.Ix (LiteralIx)
 
@@ -34,10 +34,8 @@ data VMMethod f
         parameterCount :: Int
       }
 
--- TODO as HashMap
-
 -- | Collection of methods
-newtype VMMethods f = MkVMMethods (Map.Map LiteralIx (VMMethod f))
+newtype VMMethods f = MkVMMethods (Map.HashMap LiteralIx (VMMethod f))
 
 -- | Create new collection of methods
 newMethods :: [(LiteralIx, VMMethod f)] -> VMMethods f
