@@ -21,14 +21,15 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.LookupMap as LM
 import Data.Maybe (catMaybes)
 import Data.Text (Text)
-import Data.Text.Utility ((<+), showT)
-import HaSOM.AST as AST
+import Data.Text.Utility (showT, (<+))
+import qualified HaSOM.AST as AST
 import HaSOM.AST.Algebra
 import HaSOM.Compiler.Context
 import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)
 import HaSOM.VM.Primitive.Type (PrimitiveContainer)
 import HaSOM.VM.Universe
+import Control.Applicative ((<|>))
 
 ------------------------------------------------------------
 -- Compilation orchestration
@@ -111,7 +112,7 @@ compileGlobalObjects MkCoreClasses {trueClass, falseClass, systemClass, nilClass
 type PureClasses = (Map.HashMap Text (Either AST.Class PartialClass))
 
 compileClassesPure :: (ClassEff r, Member ExcT r, Member (State MockGC) r) => [AST.Class] -> Eff r [(ObjIx, VMObjectNat)]
-compileClassesPure initialAsts  = do
+compileClassesPure initialAsts = do
   let asts = map changeSupernameClass initialAsts
   -- The map of uncompiled classes
   let astMap = Map.fromList $ map (\ast -> (AST.name ast, Left ast)) asts
@@ -123,6 +124,14 @@ compileClassesPure initialAsts  = do
   -- finish the classes
   concat <$> forM partials (finishClass metaclass)
   where
+    changeSupernameClass ast =
+      ast
+        { AST.superclass = case AST.superclass ast of
+            Nothing -> Just "Object"
+            Just "nil" -> Nothing
+            s -> s
+        }
+
     runAst ast = do
       MkPartialClass {partialClasses} <- compileSingleClassPure [] ast
       (AST.name ast,) <$> (partialClasses <$> getIdx <*> getIdx)
@@ -140,27 +149,23 @@ compileClassesPure initialAsts  = do
       let metaAsObj = partMetaAsObj metaclass
       pure [(asObject instanceClass, instanceAsObj), (asObject metaClass, metaAsObj)]
 
-    changeSupernameClass ast = ast {AST.superclass = actualSuperclass}
-      where
-        actualSuperclass = case AST.superclass ast of
-          Nothing -> Just "Object"
-          Just "nil" -> Nothing
-          s -> s
-
 compileSingleClassPure ::
   (Member (State PureClasses) r, Member ExcT r, ClassEff r) =>
   [Text] ->
   AST.Class ->
   Eff r PartialClass
 compileSingleClassPure previous ast
-  | classname `elem` previous = throwT $ "Cyclical inheritance: " <+ showT previous  -- Prevent cyclical inheritance
+  | classname `elem` previous =
+    throwT $ "Cyclical inheritance: " <+ showT (classname : previous) -- Prevent cyclical inheritance
   | otherwise = do
-      superC <- sequence $ AST.superclass ast <&> findClass
-
-      let (superclassF, metasuperclassF) =
-            case superC of
-              Nothing -> (Map.empty, Map.empty)
-              Just MkPartialClass {classFields, metaclassFields} -> (classFields, metaclassFields)
+      (superclassF, metasuperclassF) <- case AST.superclass ast of
+        -- For class 'X = nil ()', the superclass of 'X class' is technicaly 'Class'
+        -- but this creates cyclical dependency
+        -- so we assume 'Class' has no class fields
+        Nothing -> pure (Map.empty, Map.empty)
+        Just superclass ->
+          (\MkPartialClass{classFields, metaclassFields} -> (classFields, metaclassFields))
+            <$> findClass superclass
 
       partial <- fold compileAlgebra ast superclassF metasuperclassF
       modify @PureClasses $ Map.insert classname (Right partial)
@@ -232,7 +237,7 @@ compileAlgebra = MkAlgebra {..}
       (metaclassFields, partialMetaclassClass, partialMetaclassAsObj) <-
         compileClass
           (addMeta name)
-          (addMeta <$> supername)
+          ((addMeta <$> supername) <|> Just "Class")
           classF
           classM
           metasuperclassF
@@ -372,9 +377,9 @@ compileAlgebra = MkAlgebra {..}
 
 compileClass ::
   ClassEff r =>
-  Identifier ->
-  Maybe Identifier ->
-  [Variable] ->
+  AST.Identifier ->
+  Maybe AST.Identifier ->
+  [AST.Variable] ->
   [Eff (Reader ClassCtx : r) MethodRes] ->
   FieldsLookup ->
   Eff r (FieldsLookup, ObjIx -> VMClassNat, VMClassNat -> VMObjectNat)
@@ -435,7 +440,7 @@ compileNestedBlock es =
 ------------------------------------------------------------
 -- Expression compile
 
-compileSingleAssign :: ExprEff r => Variable -> Eff r [Bytecode]
+compileSingleAssign :: ExprEff r => AST.Variable -> Eff r [Bytecode]
 compileSingleAssign var = do
   v <-
     findVar var <&> \case
@@ -456,25 +461,25 @@ compileCall selector isSuper =
 ------------------------------------------------------------
 -- Literal compile
 
-transformLiteral :: Member (State GlobalCtx) r => Literal -> Eff r LiteralIx
-transformLiteral (LArray lits) =
+transformLiteral :: Member (State GlobalCtx) r => AST.Literal -> Eff r LiteralIx
+transformLiteral (AST.LArray lits) =
   mapM transformLiteral lits
     >>= getLiteral . ArrayLiteral
-transformLiteral (LSymbol sym) = getLiteral (SymbolLiteral sym)
-transformLiteral (LString str) = getLiteral (StringLiteral str)
-transformLiteral (LInteger int) = getLiteral (IntLiteral int)
-transformLiteral (LDouble d) = getLiteral (DoubleLiteral d)
+transformLiteral (AST.LSymbol sym) = getLiteral (SymbolLiteral sym)
+transformLiteral (AST.LString str) = getLiteral (StringLiteral str)
+transformLiteral (AST.LInteger int) = getLiteral (IntLiteral int)
+transformLiteral (AST.LDouble d) = getLiteral (DoubleLiteral d)
 
 ------------------------------------------------------------
 -- Method signature
 
-methodSignature :: MethodType -> (Text, [Text])
-methodSignature (UnaryMethod t) = (t, [])
-methodSignature (BinaryMethod t param) = (t, [param])
-methodSignature (KeywordMethod kws) =
+methodSignature :: AST.MethodType -> (Text, [Text])
+methodSignature (AST.UnaryMethod t) = (t, [])
+methodSignature (AST.BinaryMethod t param) = (t, [param])
+methodSignature (AST.KeywordMethod kws) =
   (keywordsToText kws, NonEmpty.toList $ fmap snd kws)
 
-keywordsToText :: NonEmpty (Keyword, a) -> Text
+keywordsToText :: NonEmpty (AST.Keyword, a) -> Text
 keywordsToText = foldl (<+) "" . fmap fst
 
 addMeta :: Text -> Text
