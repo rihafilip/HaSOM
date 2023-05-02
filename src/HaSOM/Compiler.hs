@@ -398,12 +398,14 @@ compileClass name supername thisFields methods superFields = do
   MkGlobalCtx {nilIx} <- get
 
   -- Create fields
-  let newIx = (+ 1) $ Map.foldl max 0 superFields
+  let newIx
+        | null superFields = 0
+        | otherwise = (+ 1) $ Map.foldl max 0 superFields
   let fields =
         foldr
           (uncurry Map.insert)
           superFields
-          (("super", 0) : zip thisFields [newIx ..])
+          (zip thisFields [newIx ..])
 
   -- Create context
   let cCtx = MkClassCtx {className = name, fields}

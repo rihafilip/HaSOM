@@ -29,6 +29,7 @@ module HaSOM.Compiler.Context
     isBlock,
     getLiteral,
     insertClass,
+    insertGlobalObject,
 
     -- * Variable lookup helpers
     VarRes (..),
@@ -137,6 +138,12 @@ insertClass :: Member (State GlobalCtx) r => GlobalIx -> VMClassNat -> Eff r ()
 insertClass idx clazz = do
   ctx@MkGlobalCtx {globals} <- get
   let newGlobs = setGlobal idx (ClassGlobal clazz) globals
+  put (ctx {globals = newGlobs})
+
+insertGlobalObject :: Member (State GlobalCtx) r => GlobalIx -> ObjIx -> Eff r ()
+insertGlobalObject idx obj = do
+  ctx@MkGlobalCtx {globals} <- get
+  let newGlobs = setGlobal idx (ObjectGlobal obj) globals
   put (ctx {globals = newGlobs})
 
 ------------------------------------------------------------

@@ -60,9 +60,9 @@ getOrSet key m@(MkLookupMap {lookups, nextIx}) = case Map.lookup key lookups of
 
 -- | Put all of the given values in the map, giving new indices to th evalues
 putAll :: (Eq i, Hashable i, Enum v) => [i] -> LookupMap i v -> LookupMap i v
-putAll = flip (foldr f)
+putAll = flip (foldl f)
   where
-    f = fst ... getOrSet
+    f = fst ... flip getOrSet
 
 -- | Transform the map to list
 toList :: LookupMap i v -> [(i, v)]
