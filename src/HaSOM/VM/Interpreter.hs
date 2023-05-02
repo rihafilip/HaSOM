@@ -3,8 +3,6 @@
 -- | Code execution methods
 module HaSOM.VM.Interpreter (interpret, bootstrap) where
 
-import Control.Eff (Eff, Lifted)
-import Control.Eff.ExcT (throwOnNothing)
 import Control.Monad ((>=>))
 import Data.Functor ((<&>))
 import Data.Text (Text)
@@ -12,28 +10,32 @@ import Data.Text.Utility (showT, (<+))
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
-import HaSOM.VM.Universe.Operations (addToGC, getCurrentCallFrame, getGlobalE, internGlobalE, internLiteralE, newArray, newString, pushCallFrame, pushStack)
+import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
 
 -- | Run the interpreter
-interpret :: (Lifted IO r, UniverseEff r) => Eff r Int
+interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
 interpret = do
   cf <- getCurrentCallFrame
 
   r <- case method cf of
-    BytecodeMethod {body} ->
-      throwOnNothing
+    BytecodeMethod {body} -> do
+      ins <- throwOnNothing
         ("Index " <+ showT (pc cf) <+ " fell out of code block")
         (getInstruction (pc cf) body)
-        >>= executeInstruction
+      advancePC
+      executeInstruction ins
     NativeMethod {nativeBody} -> Nothing <$ runNativeFun nativeBody
 
   maybe interpret pure r
 
-executeInstruction :: (Lifted IO r, UniverseEff r) => Bytecode -> Eff r (Maybe Int)
+executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r)  => Bytecode -> Eff r (Maybe Int)
 executeInstruction HALT = Just <$> doHalt
-executeInstruction bc =
-  Nothing <$ case bc of
+executeInstruction bc = do
+  ask >>= \case
+    DoTrace -> lift $ putStrLn ("Trace: " ++ show bc)
+    NoTrace -> pure ()
+  case bc of
     DUP -> doDup
     POP -> doPop
     PUSH_LITERAL li -> doPushLiteral li
@@ -47,6 +49,7 @@ executeInstruction bc =
     SUPER_CALL li -> doSupercall li
     RETURN -> doReturn
     NONLOCAL_RETURN -> doNonlocalReturn
+  pure Nothing
 
 -- | Bootstrap the System>>#initialize: method with command line arguments
 bootstrap :: UniverseEff r => Text -> [Text] -> Eff r ()

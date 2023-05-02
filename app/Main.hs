@@ -23,7 +23,8 @@ data HaSOM
   | Exec
       { mainClass :: Text,
         classpath :: [FilePath],
-        arguments :: [Text]
+        arguments :: [Text],
+        trace :: Bool
       }
   deriving (Show, Data, Typeable)
 
@@ -47,7 +48,8 @@ exec =
     Exec {}
     [ classpath := def += typ "FILES/DIRS",
       mainClass := "" += argPos 0 += typ "mainClass",
-      arguments := def += args += typ "ARGS"
+      arguments := def += args += typ "ARGS",
+      trace := def += help "Enable VM tracing"
     ]
     += auto
     += help "Execute the SOM program at given classpaths with given main"
@@ -78,6 +80,6 @@ main = do
       Compile fps ->
         wrap (doCompile fps)
           >>= TIO.putStrLn . doDisassemble
-      Exec {mainClass, classpath, arguments} ->
+      Exec {mainClass, classpath, arguments, trace} ->
         wrap (doCompile classpath)
-          >>= doExecute mainClass arguments
+          >>= doExecute mainClass arguments trace

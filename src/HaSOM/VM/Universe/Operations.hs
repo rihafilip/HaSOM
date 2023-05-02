@@ -20,6 +20,7 @@ module HaSOM.VM.Universe.Operations
     getCurrentCallFrame,
     pushCallFrame,
     popCallFrame,
+    advancePC,
 
     -- ** Locals
     getLocal,
@@ -166,6 +167,12 @@ popCallFrame :: (CallStackEff r, Member ExcT r) => Eff r CallStackItemNat
 popCallFrame =
   modifyEffYield @CallStackNat $
     "Trying to pop empty call stack" <?. St.pop
+
+advancePC :: (Lifted IO r, CallStackEff r, Member ExcT r) => Eff r ()
+advancePC = do
+  ci <- popCallFrame
+  ci' <- modifyCallFrame ci (\cf -> pure cf {pc = pc cf + 1})
+  modify @CallStackNat $ St.push ci'
 
 ---------------------------------------------------------------
 -- Locals manipulation

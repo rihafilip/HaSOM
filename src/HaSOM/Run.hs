@@ -80,27 +80,29 @@ doCompile files = do
 doDisassemble :: CompilationResult -> Text
 doDisassemble MkCompilationResult {globals, literals} =
   run $ evalState literals $ evalState globals $ do
-      gls <- disassembleGlobals globals
-      lits <- disassembleLiterals literals
-      pure $ lits <+ "\n\n" <+ gls
+    gls <- disassembleGlobals globals
+    lits <- disassembleLiterals literals
+    pure $ lits <+ "\n\n" <+ gls
 
-doExecute :: Text -> [Text] -> CompilationResult -> IO ()
-doExecute clazz args MkCompilationResult {..} =
+doExecute :: Text -> [Text] -> Bool -> CompilationResult -> IO ()
+doExecute clazz args trace MkCompilationResult {..} =
   do
     let cs = (emptyStack :: CallStackNat)
     let os = (emptyStack :: ObjStack)
     let gc = (GC.fromList nilObj heap :: GCNat)
 
-    (((((res, fGC), fLits), fCallSt), fGlobs), fStack) <-
+    -- (((((res, fGC), fLits), fCallSt), fGlobs), fStack) <-
+    (((((res, _), _), _), _), _) <-
       runLift $
         runState os $
           runState globals $
             runReader coreClasses $
-              runState cs $
-                runState literals $
-                  runState gc $
-                    runError @Text
-                      (bootstrap clazz args >> interpret)
+              runReader (traceFromBool trace) $
+                runState cs $
+                  runState literals $
+                    runState gc $
+                      runError @Text
+                        (bootstrap clazz args >> interpret)
 
     case res of
       Left txt -> TIO.hPutStrLn stderr ("Runtime error: " <+ txt) >> exitFailure

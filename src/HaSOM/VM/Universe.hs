@@ -4,7 +4,11 @@
 
 -- | Definition of VM Universe, specialization of types and effects
 module HaSOM.VM.Universe
-  ( -- * Native function specialization of parametrized types
+  ( -- * Tracing flag definition
+    Trace(..),
+    traceFromBool,
+
+    -- * Native function specialization of parametrized types
     CallFrameNat,
     CallStackItemNat,
     CallStackNat,
@@ -26,6 +30,7 @@ module HaSOM.VM.Universe
     LiteralEff,
     GCEff,
     UniverseEff,
+    TraceEff,
 
     -- * Primitive function definitions
     NativeFun,
@@ -42,6 +47,14 @@ import Control.Eff.State.Strict (State)
 import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
 import HaSOM.VM.Object
+
+-----------------------------------
+
+data Trace = DoTrace | NoTrace
+
+traceFromBool :: Bool -> Trace
+traceFromBool True = DoTrace
+traceFromBool False = NoTrace
 
 -----------------------------------
 
@@ -93,6 +106,9 @@ type LiteralEff r = Member (State VMLiterals) r
 
 -- | VM GC definition effect
 type GCEff r = Member (State GCNat) r
+
+-- | VM Trace effect
+type TraceEff r = Member (Reader Trace) r
 
 -----------------------------------
 
