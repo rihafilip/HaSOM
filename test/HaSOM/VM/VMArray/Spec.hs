@@ -7,17 +7,10 @@ import Control.Monad (zipWithM_)
 import HaSOM.VM.Object (VMIx (..))
 import HaSOM.VM.VMArray (VMArray)
 import qualified HaSOM.VM.VMArray as Arr
+import Helper.VMIx (TestIx)
 import Test.Hspec
-  ( Expectation,
-    Spec,
-    describe,
-    it,
-    shouldBe,
-    shouldNotContain,
-  )
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
-import Helper.VMIx (TestIx)
 
 instance (Arbitrary a) => Arbitrary (VMArray i a) where
   arbitrary = do
@@ -49,9 +42,7 @@ spec =
 
     -- Props
     prop "fromList has correct elements" prop_FromListArrayCorrectElements
-    prop "appendArray and appendArrayIx behave the same" prop_Appending
     prop "newArray returns Array filled with given element" prop_NewArray
-    prop "appendArrayIx returns unique indices" prop_UniqueIx
 
 prop_FromListArrayCorrectElements :: [Int] -> Expectation
 prop_FromListArrayCorrectElements xs =
@@ -59,23 +50,8 @@ prop_FromListArrayCorrectElements xs =
       ar = Arr.fromList xs
    in zipWithM_ (\el i -> Arr.get i ar `shouldBe` Just el) xs [0 ..]
 
-prop_Appending :: Int -> VMArray TestIx Int -> Expectation
-prop_Appending el arr =
-  let (arr1, _) = Arr.appendIx el arr
-      arr2 = Arr.append el arr
-   in arr1 `shouldBe` arr2
-
 prop_NewArray :: Int -> Char -> Expectation
 prop_NewArray count el = mapM_ (\idx -> Just el `shouldBe` Arr.get idx arr) [0 .. (ix count - 1)]
   where
     arr :: VMArray TestIx Char
     arr = Arr.new count el
-
-prop_UniqueIx :: [Int] -> VMArray TestIx Int -> Expectation
-prop_UniqueIx xs initArr =
-  let (res, _, _) = foldr f1 (pure (), [], initArr) xs
-      f1 x (expects, indicies, arr) = (ex >> expects, newIx : indicies, arr')
-        where
-          (arr', newIx) = Arr.appendIx x arr
-          ex = indicies `shouldNotContain` [newIx]
-   in res

@@ -14,25 +14,19 @@ module HaSOM.VM.VMArray
     -- * length function
     length,
 
-    -- TODO remove ?
-    -- * Array appending functions
-    appendIx,
-    append,
-
     -- * Transformation
     toList,
   )
 where
 
-import Combinator ((...))
-import HaSOM.VM.Object.Ix (VMIx (getIx, ix))
+import HaSOM.VM.Object.Ix (VMIx (getIx))
 import Prelude hiding (length)
-import qualified Prelude as P (length)
+import Data.Vector (Vector, (!?), (//))
+import qualified Data.Vector as V
 
--- TODO as Array
 -- | Type definition of the array,
 -- where i is the index type and a is the element type
-newtype VMArray i a = MkVMArray [a]
+newtype VMArray i a = MkVMArray (Vector a)
 
 instance Show a => Show (VMArray i a) where
   show (MkVMArray xs) = show xs
@@ -44,53 +38,30 @@ instance Eq a => Eq (VMArray i a) where
 
 -- | Create an empty array with given length and default item
 new :: Int -> a -> VMArray i a
-new l x = MkVMArray (replicate l x)
+new l x = MkVMArray (V.replicate l x)
 
 -- | Create an empty array from a list
 fromList :: [a] -> VMArray i a
-fromList = MkVMArray
+fromList = MkVMArray . V.fromList
 
 ----------------------------------------------------------
 
 -- | Get an element on given array index
 get :: VMIx i => i -> VMArray i a -> Maybe a
-get idx (MkVMArray xs)
-  | getIx idx < 0 = Nothing
-  | otherwise =
-      either (const Nothing) Just $
-        foldl go (Left (getIx idx)) xs
-  where
-    go r@(Right _) _ = r
-    go (Left 0) x = Right x
-    go (Left i) _ = Left (i - 1)
+get i (MkVMArray xs) = xs !? getIx i
 
 -- | Set an element in given array index
 set :: VMIx i => i -> a -> VMArray i a -> Maybe (VMArray i a)
 set idx element (MkVMArray xs)
-  | getIx idx < 0 || getIx idx > P.length xs = Nothing
-  | otherwise = Just $ MkVMArray $ zipWith f [0 ..] xs
-  where
-    f i x
-      | i == getIx idx = element
-      | otherwise = x
-
+  | i < 0 || i >= V.length xs = Nothing
+  | otherwise = Just $ MkVMArray $ xs // [(i, element)]
+  where i = getIx idx
 ----------------------------------------------------------
 
 length :: VMArray i a -> Int
-length (MkVMArray xs) = P.length xs
-
-----------------------------------------------------------
-
--- | Append an element to the back of the array,
--- returning the modified array and the new elements index
-appendIx :: VMIx i => a -> VMArray i a -> (VMArray i a, i)
-appendIx element (MkVMArray xs) = (MkVMArray (xs ++ [element]), ix (P.length xs + 1))
-
--- | Same as appendArrayIx, returning only the new array
-append :: VMIx i => a -> VMArray i a -> VMArray i a
-append = fst ... appendIx
+length (MkVMArray xs) = V.length xs
 
 ----------------------------------------------------------
 -- | Transform array to list
 toList :: VMArray i a -> [a]
-toList (MkVMArray a) = a
+toList (MkVMArray a) = V.toList a
