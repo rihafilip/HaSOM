@@ -62,7 +62,7 @@ internGlobal txt gl@MkVMGlobals {interner} = (gl {interner = newInterner}, idx)
 getGlobalName :: GlobalIx -> VMGlobals f -> Maybe Text
 getGlobalName idx = lookup idx . map swap . LM.toList . interner
 
-globalsToList :: VMGlobals f -> [(GlobalIx, Text, VMGlobal f)]
-globalsToList gl@MkVMGlobals {globals} = map f $ Map.toList globals
+globalsToList :: VMGlobals f -> [(GlobalIx, Text, Maybe (VMGlobal f))]
+globalsToList MkVMGlobals {..} = map f $ LM.toList interner
   where
-    f (idx, val) = (idx, fromMaybe "" $ getGlobalName idx gl, val)
+    f (name, idx) = (idx, name, Map.lookup idx globals)

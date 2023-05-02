@@ -141,14 +141,17 @@ disassembleGlobals =
     addLine "Globals:"
     indented $ mapM_ (evalState gs . f) $ sortOn (\(x, _, _) -> x) $ globalsToList gs
   where
-    f (idx, name, ClassGlobal cl) = do
+    f (idx, name, Just (ClassGlobal cl)) = do
       showT idx .: quote name
       indented $ disassembleClass_ cl
       addLine ""
-    f (idx, name, ObjectGlobal oi) = do
+    f (idx, name, Just (ObjectGlobal oi)) = do
       showT idx .: quote name
       indented $ "GlobalObject" .: showT oi
       addLine ""
+    f (idx, name, Nothing) = do
+      showT idx .: quote name
+      addLine "<nil>"
 
 -----------------------------------------------------------
 
