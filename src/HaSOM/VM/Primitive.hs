@@ -46,8 +46,6 @@ defaultPrimitives =
     System.primitives
   ]
 
--- TODO add global objects
-
 compilePrimitives :: (Member (State GlobalCtx) r) => [PrimitiveContainer] -> Eff r ()
 compilePrimitives =
   mapM_
