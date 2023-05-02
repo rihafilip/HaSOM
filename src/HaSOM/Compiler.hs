@@ -7,6 +7,7 @@
 module HaSOM.Compiler (compile, CompilationResult (..)) where
 
 import Combinator ((.>))
+import Control.Applicative ((<|>))
 import Control.Eff
 import Control.Eff.ExcT
 import Control.Eff.Exception
@@ -29,7 +30,6 @@ import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)
 import HaSOM.VM.Primitive.Type (PrimitiveContainer)
 import HaSOM.VM.Universe
-import Control.Applicative ((<|>))
 
 ------------------------------------------------------------
 -- Compilation orchestration
@@ -96,12 +96,23 @@ compileGlobalObjects MkCoreClasses {trueClass, falseClass, systemClass, nilClass
           Just (ClassGlobal cl) -> pure InstanceObject {clazz = cl, fields = newFields cl nilIx}
           Just (ObjectGlobal _) -> throwT $ "Trying to find class " <+ name <+ ", but found object instead"
 
+  nilGlIx <- findGlobalVar "nil"
+  insertGlobalObject nilGlIx nilIx
   nil <- mkInstance nilClass "Nil"
+
   trueIdx <- getIdx
+  trueGlIx <- findGlobalVar "true"
+  insertGlobalObject trueGlIx trueIdx
   true <- mkInstance trueClass "True"
+
   falseIdx <- getIdx
+  falseGlIx <- findGlobalVar "false"
+  insertGlobalObject falseGlIx falseIdx
   false <- mkInstance falseClass "False"
+
   systemIdx <- getIdx
+  systemGlIx <- findGlobalVar "system"
+  insertGlobalObject systemGlIx systemIdx
   system <- mkInstance systemClass "System"
 
   pure (nil, [(nilIx, nil), (trueIdx, true), (falseIdx, false), (systemIdx, system)])
@@ -156,7 +167,7 @@ compileSingleClassPure ::
   Eff r PartialClass
 compileSingleClassPure previous ast
   | classname `elem` previous =
-    throwT $ "Cyclical inheritance: " <+ showT (classname : previous) -- Prevent cyclical inheritance
+      throwT $ "Cyclical inheritance: " <+ showT (classname : previous) -- Prevent cyclical inheritance
   | otherwise = do
       (superclassF, metasuperclassF) <- case AST.superclass ast of
         -- For class 'X = nil ()', the superclass of 'X class' is technicaly 'Class'
@@ -164,7 +175,7 @@ compileSingleClassPure previous ast
         -- so we assume 'Class' has no class fields
         Nothing -> pure (Map.empty, Map.empty)
         Just superclass ->
-          (\MkPartialClass{classFields, metaclassFields} -> (classFields, metaclassFields))
+          (\MkPartialClass {classFields, metaclassFields} -> (classFields, metaclassFields))
             <$> findClass superclass
 
       partial <- fold compileAlgebra ast superclassF metasuperclassF

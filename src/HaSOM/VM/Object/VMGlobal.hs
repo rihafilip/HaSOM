@@ -20,7 +20,6 @@ where
 
 import qualified Data.HashMap.Strict as Map
 import qualified Data.LookupMap as LM
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Tuple (swap)
 import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
