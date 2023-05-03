@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -8,12 +9,6 @@
 module HaSOM.VM.Primitive.Type
   ( -- * Compiler type
     PrimitiveContainer (..),
-
-    -- * Cast error
-    ObjectType (..),
-    formatObjectT,
-    fromObject,
-    wrongObjectType,
 
     -- * Pure function helper
     nativeFun,
@@ -26,7 +21,15 @@ module HaSOM.VM.Primitive.Type
     N3,
     ArgList (..),
 
-    -- * Casting helpers
+    -- * Object casting helpers
+
+    -- ** Cast error types
+    ObjectType (..),
+    formatObjectT,
+    fromObject,
+    wrongObjectType,
+
+    -- ** Cast an objet to type
     castInt,
     castDouble,
     castString,
@@ -147,16 +150,21 @@ instance GetArgs n => GetArgs ('Succ n) where
     pure (next + 1, x :+: xs)
 
 -- | Create a function with giving self and arguments
-nativeFun :: forall n r. (GetArgs n, UniverseEff r, Lifted IO r) => (ObjIx -> ArgList n ObjIx -> Eff r ()) -> Eff r ()
-nativeFun f = do
+nativeFun :: forall n. (GetArgs n) => (forall r. (UniverseEff r, Lifted IO r) => ObjIx -> ArgList n ObjIx -> Eff r ()) -> NativeFun
+nativeFun f = mkNativeFun $ do
   self <- getSelf
   (_, args) <- getArgs @n
   f self args
   void popCallFrame
 
 -- | Create a function with giving self, arguments and returning result on stack
-pureNativeFun :: forall n r. (GetArgs n, UniverseEff r, Lifted IO r) => (ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> Eff r ()
+pureNativeFun :: forall n. (GetArgs n) => (forall r. (UniverseEff r, Lifted IO r) => ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> NativeFun
 pureNativeFun f = nativeFun (\self args -> f self args >>= pushStack)
+
+nativeNotImplemented :: NativeFun
+nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do
+  lift $ putStrLn "TODO: Not yet implemented"
+  pure self
 
 --------------------------------------------------
 
@@ -189,8 +197,3 @@ castArray idx =
   getAsObject idx >>= \case
     obj@ArrayObject {arrayValue} -> pure (arrayValue, \val -> obj {arrayValue = val})
     obj -> wrongObjectType obj ArrayT
-
-nativeNotImplemented :: (Lifted IO r, UniverseEff r) => Eff r ()
-nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do
-  lift $ putStrLn "TODO: Not yet implemented"
-  pure self

@@ -21,25 +21,25 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("at:", mkNativeFun at),
-    ("at:put:", mkNativeFun atPut),
-    ("length", mkNativeFun lengthA)
+  [ ("at:", at),
+    ("at:put:", atPut),
+    ("length", lengthA)
   ]
 
 classMs :: [(Text, NativeFun)]
-classMs = [ ("new:", mkNativeFun new) ]
+classMs = [ ("new:", new) ]
 
 ---------------------------------
 -- Instance
 
-at :: (UniverseEff r, Lifted IO r) => Eff r ()
+at :: NativeFun
 at = pureNativeFun @N1 $ \self (atI :+: Nil) -> do
   (arr, _) <- castArray self
   atInt <- castInt atI
 
   maybe getNil pure $ Arr.get (ix atInt - 1) arr
 
-atPut :: (UniverseEff r, Lifted IO r) =>Eff r ()
+atPut :: NativeFun
 atPut = pureNativeFun @N2 $ \self (atI :+: val :+: Nil) -> do
   (arr, selfUpdate) <- castArray self
   atInt <- castInt atI
@@ -50,7 +50,7 @@ atPut = pureNativeFun @N2 $ \self (atI :+: val :+: Nil) -> do
 
   pure self
 
-lengthA :: (UniverseEff r, Lifted IO r) => Eff r ()
+lengthA :: NativeFun
 lengthA = pureNativeFun @N0 $ \self Nil -> do
    (arr, _) <- castArray self
    let l = Arr.length arr
@@ -60,7 +60,7 @@ lengthA = pureNativeFun @N0 $ \self Nil -> do
 ---------------------------------
 -- Class
 
-new :: (UniverseEff r, Lifted IO r) => Eff r ()
+new :: NativeFun
 new = pureNativeFun @N1 $ \_ (sizeI :+: Nil) -> do
   size <- castInt sizeI
   nil <- getNil

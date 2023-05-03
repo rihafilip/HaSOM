@@ -15,7 +15,7 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("value:", mkNativeFun $ value "Block2>>value:")
+  [ ("value:", value "Block2>>value:")
   ]
 
 classMs :: [(Text, NativeFun)]

@@ -1,14 +1,15 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
+
 module HaSOM.VM.Primitive.Primitive (primitives) where
 
 import Data.Text (Text)
+import Data.Text.Utility
+import HaSOM.VM.Object
 import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
-import HaSOM.VM.Object
-import Data.Text.Utility
 
 primitives :: PrimitiveContainer
 primitives =
@@ -20,9 +21,9 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("signature", mkNativeFun sign),
-    ("holder", mkNativeFun holderM),
-    ("invokeOn:with:", mkNativeFun invokeOnWith)
+  [ ("signature", sign),
+    ("holder", holderM),
+    ("invokeOn:with:", invokeOnWith)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -31,20 +32,21 @@ classMs = []
 ---------------------------------
 -- Instance
 
-sign :: (UniverseEff r, Lifted IO r) => Eff r ()
+sign :: NativeFun
 sign = pureNativeFun @N0 $ \self Nil -> do
   signature <-
     getAsObject self >>= \case
       PrimitiveObject {methodValue} -> pure methodValue
       obj -> wrongObjectType obj PrimitiveT
 
-  sym <- getLiteralE signature >>= \case
-    SymbolLiteral lit -> pure lit
-    lit -> throwT $ "Expected Symbol literal, got " <+ showT lit
+  sym <-
+    getLiteralE signature >>= \case
+      SymbolLiteral lit -> pure lit
+      lit -> throwT $ "Expected Symbol literal, got " <+ showT lit
 
   newSymbol sym >>= addToGC
 
-holderM :: (UniverseEff r, Lifted IO r) => Eff r ()
+holderM :: NativeFun
 holderM = pureNativeFun @N0 $ \self Nil -> do
   holderIx <-
     getAsObject self >>= \case
@@ -53,7 +55,7 @@ holderM = pureNativeFun @N0 $ \self Nil -> do
 
   asObject <$> getClass holderIx
 
-invokeOnWith :: (UniverseEff r, Lifted IO r) => Eff r ()
+invokeOnWith :: NativeFun
 invokeOnWith = nativeFun @N2 $ \self (primary :+: args :+: Nil) -> do
   (holderIx, methodValue) <-
     getAsObject self >>= \case

@@ -29,30 +29,30 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("+", mkNativeFun $ binaryMethod (+)),
-    ("-", mkNativeFun $ binaryMethod (-)),
-    ("*", mkNativeFun $ binaryMethod (*)),
-    ("/", mkNativeFun divideInt),
-    ("//", mkNativeFun divideDouble),
-    ("%", mkNativeFun modInt),
-    ("rem:", mkNativeFun remInt),
-    ("&", mkNativeFun $ binaryMethodInt (.&.)),
-    ("<<", mkNativeFun $ binaryMethodInt shiftL),
-    (">>>", mkNativeFun $ binaryMethodInt rotateR),
-    ("bitXor:", mkNativeFun $ binaryMethodInt xor),
-    ("sqrt", mkNativeFun sqrtInt),
-    ("atRandom", mkNativeFun atRandom),
-    ("=", mkNativeFun equalInt),
-    ("<", mkNativeFun lessThanInt),
-    ("asString", mkNativeFun asString),
-    ("as32BitSignedValue", mkNativeFun nativeNotImplemented), -- TODO
-    ("as32BitUnsignedValue", mkNativeFun nativeNotImplemented), -- TODO
-    ("asDouble", mkNativeFun asDouble)
+  [ ("+", binaryMethod (+)),
+    ("-", binaryMethod (-)),
+    ("*", binaryMethod (*)),
+    ("/", divideInt),
+    ("//", divideDouble),
+    ("%", modInt),
+    ("rem:", remInt),
+    ("&", binaryMethodInt (.&.)),
+    ("<<", binaryMethodInt shiftL),
+    (">>>", binaryMethodInt rotateR),
+    ("bitXor:", binaryMethodInt xor),
+    ("sqrt", sqrtInt),
+    ("atRandom", atRandom),
+    ("=", equalInt),
+    ("<", lessThanInt),
+    ("asString", asString),
+    ("as32BitSignedValue", nativeNotImplemented), -- TODO
+    ("as32BitUnsignedValue", nativeNotImplemented), -- TODO
+    ("asDouble", asDouble)
   ]
 
 classMs :: [(Text, NativeFun)]
 classMs =
-  [ ("fromString:", mkNativeFun intFromString)
+  [ ("fromString:", intFromString)
   ]
 
 castOrPromote ::
@@ -85,7 +85,7 @@ castPromoteDouble idx =
 
 ---------------------------------
 
-binaryMethod :: (UniverseEff r, Lifted IO r) => (forall a. Num a => a -> a -> a) -> Eff r ()
+binaryMethod :: (forall a. Num a => a -> a -> a) -> NativeFun
 binaryMethod op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   obj <-
     castOrPromote self other >>= \case
@@ -93,29 +93,17 @@ binaryMethod op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
       Right (d1, d2) -> newDouble (d1 `op` d2)
   addToGC obj
 
-binaryMethodInt :: (UniverseEff r, Lifted IO r) => (Int -> Int -> Int) -> Eff r ()
+binaryMethodInt :: (Int -> Int -> Int) -> NativeFun
 binaryMethodInt op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
 
   newInt (a `op` b) >>= addToGC
 
--- binaryMethodNonzero ::
---   (UniverseEff r, Lifted IO r) =>
---   (Int -> Int -> Int) ->
---   (Double -> Double -> Double) ->
---   Eff r ()
--- binaryMethodNonzero opI opD = pureNativeFun @N1 $ \self (other :+: Nil) -> do
---   castOrPromote self other >>= \case
---     Left (_, 0) -> getNil
---     Left (i1, i2) -> newInt (i1 `opI` i2) >>= addToGC
---     Right (_, 0) -> getNil
---     Right (d1, d2) -> newDouble (d1 `opD` d2) >>= addToGC
-
 ---------------------------------
 -- Instance
 
-divideDouble :: (UniverseEff r, Lifted IO r) => Eff r ()
+divideDouble :: NativeFun
 divideDouble = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castPromoteDouble self
   b <- castPromoteDouble other
@@ -124,7 +112,7 @@ divideDouble = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then getNil
     else newDouble (a / b) >>= addToGC
 
-divideInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+divideInt :: NativeFun
 divideInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
@@ -133,7 +121,7 @@ divideInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then getNil
     else newInt (a `div` b) >>= addToGC
 
-remInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+remInt :: NativeFun
 remInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
@@ -142,7 +130,7 @@ remInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then getNil
     else newInt (a `rem` b) >>= addToGC
 
-modInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+modInt :: NativeFun
 modInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
@@ -152,13 +140,13 @@ modInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     else newInt (a `mod` b) >>= addToGC
 
 
-sqrtInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+sqrtInt :: NativeFun
 sqrtInt = pureNativeFun @N0 $ \self Nil -> do
   s <- castInt self
 
   newDouble (sqrt $ int2Double s) >>= addToGC
 
-equalInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+equalInt :: NativeFun
 equalInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
@@ -167,7 +155,7 @@ equalInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 
-lessThanInt :: (UniverseEff r, Lifted IO r) => Eff r ()
+lessThanInt :: NativeFun
 lessThanInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
   b <- castInt other
@@ -176,18 +164,18 @@ lessThanInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 
-atRandom :: (UniverseEff r, Lifted IO r) => Eff r ()
+atRandom :: NativeFun
 atRandom = pureNativeFun @N0 $ \self Nil -> do
   _ <- castInt self
   i <- lift (randomIO :: IO Int)
   newInt i >>= addToGC
 
-asString :: (UniverseEff r, Lifted IO r) => Eff r ()
+asString :: NativeFun
 asString = pureNativeFun @N0 $ \self Nil -> do
   a <- castInt self
   newString (showT a) >>= addToGC
 
-asDouble :: (UniverseEff r, Lifted IO r) => Eff r ()
+asDouble :: NativeFun
 asDouble = pureNativeFun @N0 $ \self Nil -> do
   a <- castInt self
   newDouble (int2Double a) >>= addToGC
@@ -195,7 +183,7 @@ asDouble = pureNativeFun @N0 $ \self Nil -> do
 ---------------------------------
 -- Class
 
-intFromString :: (UniverseEff r, Lifted IO r) => Eff r ()
+intFromString :: NativeFun
 intFromString = pureNativeFun @N1 $ \_ (strIx :+: Nil) -> do
   str <- castString strIx
 

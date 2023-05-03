@@ -21,9 +21,9 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("signature", mkNativeFun sign),
-    ("holder", mkNativeFun holderM),
-    ("invokeOn:with:", mkNativeFun invokeOnWith)
+  [ ("signature", sign),
+    ("holder", holderM),
+    ("invokeOn:with:", invokeOnWith)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -32,7 +32,7 @@ classMs = []
 ---------------------------------
 -- Instance
 
-sign :: (UniverseEff r, Lifted IO r) => Eff r ()
+sign :: NativeFun
 sign = pureNativeFun @N0 $ \self Nil -> do
   signature <-
     getAsObject self >>= \case
@@ -45,7 +45,7 @@ sign = pureNativeFun @N0 $ \self Nil -> do
 
   newSymbol sym >>= addToGC
 
-holderM :: (UniverseEff r, Lifted IO r) => Eff r ()
+holderM :: NativeFun
 holderM = pureNativeFun @N0 $ \self Nil -> do
   holderIx <-
     getAsObject self >>= \case
@@ -54,7 +54,7 @@ holderM = pureNativeFun @N0 $ \self Nil -> do
 
   asObject <$> getClass holderIx
 
-invokeOnWith :: (UniverseEff r, Lifted IO r) => Eff r ()
+invokeOnWith :: NativeFun
 invokeOnWith = nativeFun @N2 $ \self (primary :+: args :+: Nil) -> do
   (holderIx, methodValue) <-
     getAsObject self >>= \case

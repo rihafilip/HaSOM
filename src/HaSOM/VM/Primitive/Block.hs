@@ -22,8 +22,8 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("value", mkNativeFun $ value "Block>>value"),
-    ("restart", mkNativeFun restart)
+  [ ("value", value "Block>>value"),
+    ("restart", restart)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -32,7 +32,8 @@ classMs = []
 ---------------------------------
 -- Instance
 
-value :: (UniverseEff r, Lifted IO r) => Text -> Eff r ()
+-- TODO pops automatically
+value :: Text -> NativeFun
 value signature = nativeFun @N0 $ \objIx Nil -> do
   (blockCapturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
     getAsObject objIx >>= \case
@@ -62,6 +63,7 @@ value signature = nativeFun @N0 $ \objIx Nil -> do
   _ <- popCallFrame
   pushCallFrame cf
 
-restart :: (CallStackEff r, Member ExcT r, SetMember Lift (Lift IO) r) => Eff r ()
-restart = do
+-- TODO reset stack
+restart :: NativeFun
+restart = mkNativeFun $ do
   popCallFrame >>= flip modifyCallFrame (\cf -> pure cf {pc = 0}) >>= modify @CallStackNat . St.push

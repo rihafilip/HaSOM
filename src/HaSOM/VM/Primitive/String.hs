@@ -1,18 +1,20 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
+
 module HaSOM.VM.Primitive.String (primitives) where
 
+import Control.Monad ((>=>))
+import Data.Char (isDigit, isLetter, isSpace)
+import Data.Hashable (Hashable (hash))
 import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Utility ((<+))
+import HaSOM.VM.Object (ObjIx)
 import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
-import Data.Text.Utility ((<+))
-import Data.Hashable (Hashable(hash))
-import HaSOM.VM.Object (ObjIx)
-import Control.Monad ((>=>))
-import qualified Data.Text as T
-import Data.Char (isSpace, isLetter, isDigit)
 
 primitives :: PrimitiveContainer
 primitives =
@@ -24,21 +26,23 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("concatenate:", mkNativeFun concatM),
-    ("asSymbol", mkNativeFun asSymbol),
-    ("hashcode", mkNativeFun hashcode),
-    ("length", mkNativeFun lengthM),
-    ("isWhiteSpace", mkNativeFun isWS),
-    ("isLetters", mkNativeFun isLetters),
-    ("isDigits", mkNativeFun isDigits),
-    ("=", mkNativeFun equal),
-    ("primSubstringFrom:to:", mkNativeFun substringFromTo)
+  [ ("concatenate:", concatM),
+    ("asSymbol", asSymbol),
+    ("hashcode", hashcode),
+    ("length", lengthM),
+    ("isWhiteSpace", isWS),
+    ("isLetters", isLetters),
+    ("isDigits", isDigits),
+    ("=", equal),
+    ("primSubstringFrom:to:", substringFromTo)
   ]
 
 classMs :: [(Text, NativeFun)]
 classMs = []
 
-selfStr :: (UniverseEff r, Lifted IO r) => (Text -> Eff r ObjIx) -> Eff r ()
+selfStr ::
+  (forall r. (UniverseEff r, Lifted IO r) => Text -> Eff r ObjIx) ->
+  NativeFun
 selfStr f = pureNativeFun @N0 $ \self Nil -> do
   str <- castString self
   f str
@@ -46,23 +50,23 @@ selfStr f = pureNativeFun @N0 $ \self Nil -> do
 ---------------------------------
 -- Instance
 
-concatM :: (UniverseEff r, Lifted IO r) => Eff r ()
+concatM :: NativeFun
 concatM = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   selfT <- castString self
   otherT <- castString other
 
   newString (selfT <+ otherT) >>= addToGC
 
-asSymbol :: (UniverseEff r, Lifted IO r) => Eff r ()
+asSymbol :: NativeFun
 asSymbol = selfStr (newSymbol >=> addToGC)
 
-hashcode :: (UniverseEff r, Lifted IO r) => Eff r ()
+hashcode :: NativeFun
 hashcode = selfStr (newInt . hash >=> addToGC)
 
-lengthM :: (UniverseEff r, Lifted IO r) => Eff r ()
+lengthM :: NativeFun
 lengthM = selfStr (newInt . T.length >=> addToGC)
 
-isPredicate :: (UniverseEff r, Lifted IO r) => (Char -> Bool) ->  Eff r ()
+isPredicate :: (Char -> Bool) -> NativeFun
 isPredicate p = selfStr $ \case
   "" -> newFalse >>= addToGC
   str ->
@@ -70,16 +74,16 @@ isPredicate p = selfStr $ \case
       then newTrue >>= addToGC
       else newFalse >>= addToGC
 
-isWS :: (UniverseEff r, Lifted IO r) => Eff r ()
+isWS :: NativeFun
 isWS = isPredicate isSpace
 
-isLetters :: (UniverseEff r, Lifted IO r) => Eff r ()
+isLetters :: NativeFun
 isLetters = isPredicate isLetter
 
-isDigits :: (UniverseEff r, Lifted IO r) => Eff r ()
+isDigits :: NativeFun
 isDigits = isPredicate isDigit
 
-equal :: (UniverseEff r, Lifted IO r) => Eff r ()
+equal :: NativeFun
 equal = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   selfT <- castString self
   otherT <- castString other
@@ -88,7 +92,7 @@ equal = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 
-substringFromTo :: (UniverseEff r, Lifted IO r) => Eff r ()
+substringFromTo :: NativeFun
 substringFromTo = pureNativeFun @N2 $ \self (from :+: to :+: Nil) -> do
   str <- castString self
   fromI <- castInt from

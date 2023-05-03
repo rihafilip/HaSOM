@@ -26,20 +26,20 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("global:", mkNativeFun global),
-    ("global:put:", mkNativeFun globalPut),
-    ("hasGlobal:", mkNativeFun hasGlobal),
-    ("loadFile:", mkNativeFun loadFile),
-    ("load:", mkNativeFun load),
-    ("exit:", mkNativeFun exit),
-    ("printString:", mkNativeFun printStrM),
-    ("printNewline", mkNativeFun printNewlineM),
-    ("errorPrintln:", mkNativeFun errorPrintln),
-    ("errorPrint:", mkNativeFun errorPrint),
-    ("printStackTrace", mkNativeFun nativeNotImplemented), -- TODO
-    ("time", mkNativeFun nativeNotImplemented), -- TODO
-    ("ticks", mkNativeFun nativeNotImplemented), -- TODO
-    ("fullGC", mkNativeFun nativeNotImplemented) -- TODO
+  [ ("global:", global),
+    ("global:put:", globalPut),
+    ("hasGlobal:", hasGlobal),
+    ("loadFile:", loadFile),
+    ("load:", load),
+    ("exit:", exit),
+    ("printString:", printStrM),
+    ("printNewline", printNewlineM),
+    ("errorPrintln:", errorPrintln),
+    ("errorPrint:", errorPrint),
+    ("printStackTrace", nativeNotImplemented), -- TODO
+    ("time", nativeNotImplemented), -- TODO
+    ("ticks", nativeNotImplemented), -- TODO
+    ("fullGC", nativeNotImplemented) -- TODO
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -48,7 +48,7 @@ classMs = []
 ---------------------------------
 -- Instance
 
-global :: (UniverseEff r, Lifted IO r) => Eff r ()
+global :: NativeFun
 global = pureNativeFun @N1 $ \_ (g :+: Nil) -> do
   symbol <- castSymbol g
   idx <- internGlobalE symbol
@@ -58,7 +58,7 @@ global = pureNativeFun @N1 $ \_ (g :+: Nil) -> do
     Just (ObjectGlobal oi) -> pure oi
     Just (ClassGlobal MkVMClass{asObject}) -> pure asObject
 
-globalPut :: (UniverseEff r, Lifted IO r) => Eff r ()
+globalPut :: NativeFun
 globalPut = pureNativeFun @N2 $ \self (g :+: val :+: Nil) -> do
   symbol <- castSymbol g
   idx <- internGlobalE symbol
@@ -66,7 +66,7 @@ globalPut = pureNativeFun @N2 $ \self (g :+: val :+: Nil) -> do
   setGlobalE idx (ObjectGlobal val)
   pure self
 
-hasGlobal :: (UniverseEff r, Lifted IO r) => Eff r ()
+hasGlobal :: NativeFun
 hasGlobal = pureNativeFun @N1 $ \_ (s :+: Nil) -> do
   symbol <- castSymbol s
   idx <- internGlobalE symbol
@@ -77,7 +77,7 @@ hasGlobal = pureNativeFun @N1 $ \_ (s :+: Nil) -> do
 
   addToGC bool
 
-load :: (UniverseEff r, Lifted IO r) => Eff r ()
+load :: NativeFun
 load = pureNativeFun @N1 $ \_ (s :+: Nil) -> do
   symbol <- castSymbol s
   idx <- internGlobalE symbol
@@ -89,37 +89,37 @@ load = pureNativeFun @N1 $ \_ (s :+: Nil) -> do
     Just (ObjectGlobal oi) -> oi
     Nothing -> nilIx
 
-loadFile :: (Lifted IO r, UniverseEff r) => Eff r ()
+loadFile :: NativeFun
 loadFile = pureNativeFun @N1 $ \_ (fp :+: Nil) -> do
   str <- castString fp
   cont <- lift $ TIO.readFile (T.unpack str)
 
   newString cont >>= addToGC
 
-exit :: (Lifted IO r, UniverseEff r) => Eff r ()
+exit :: NativeFun
 exit = pureNativeFun @N1 $ \_ (iIx :+: Nil) -> do
   i <- castInt iIx
   lift $ exitWith (ExitFailure i)
 
-printIOStr :: (Lifted IO r, UniverseEff r) => (Text -> IO ()) -> Eff r ()
+printIOStr :: (Text -> IO ()) -> NativeFun
 printIOStr printingF = pureNativeFun @N1 $ \self (strIx :+: Nil) -> do
   str <- castString strIx
   lift $ printingF str
   pure self
 
-printIO :: (Lifted IO r, UniverseEff r) => IO () -> Eff r ()
+printIO :: IO () -> NativeFun
 printIO printingF = pureNativeFun @N0 $ \self Nil -> do
   lift printingF
   pure self
 
-printStrM :: (Lifted IO r, UniverseEff r) => Eff r ()
+printStrM :: NativeFun
 printStrM = printIOStr TIO.putStr
 
-printNewlineM :: (Lifted IO r, UniverseEff r) => Eff r ()
+printNewlineM :: NativeFun
 printNewlineM = printIO (putStrLn "")
 
-errorPrintln :: (Lifted IO r, UniverseEff r) => Eff r ()
+errorPrintln :: NativeFun
 errorPrintln = printIOStr (TIO.hPutStrLn stderr)
 
-errorPrint :: (Lifted IO r, UniverseEff r) => Eff r ()
+errorPrint :: NativeFun
 errorPrint = printIOStr (TIO.hPutStr stderr)

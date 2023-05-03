@@ -18,7 +18,7 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("asString", mkNativeFun asString)
+  [ ("asString", asString)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -27,7 +27,7 @@ classMs = []
 ---------------------------------
 -- Instance
 
-asString :: (UniverseEff r, Lifted IO r) => Eff r ()
+asString :: NativeFun
 asString = pureNativeFun @N0 $ \self Nil -> do
   symbol <- castSymbol self
   newString symbol >>= addToGC

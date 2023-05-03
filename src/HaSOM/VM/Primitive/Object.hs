@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 {-# HLINT ignore "Use forM_" #-}
 
 module HaSOM.VM.Primitive.Object (primitives) where
@@ -24,19 +25,19 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("class", mkNativeFun classM),
-    ("objectSize", mkNativeFun objectSize),
-    ("==", mkNativeFun equals),
-    ("hashcode", mkNativeFun hashcode),
-    ("inspect", mkNativeFun nativeNotImplemented), -- TODO
-    ("halt", mkNativeFun nativeNotImplemented), -- TODO
-    ("perform:", mkNativeFun perform),
-    ("perform:withArguments:", mkNativeFun performWithArguments),
-    ("perform:inSuperclass:", mkNativeFun performInSuperclass),
-    ("perform:withArguments:inSuperclass:", mkNativeFun performWithArgumentsInSuperclass),
-    ("instVarAt:", mkNativeFun insVarAt),
-    ("instVarAt:put:", mkNativeFun insVarAtPut),
-    ("instVarNamed:", mkNativeFun instVarNamed)
+  [ ("class", classM),
+    ("objectSize", objectSize),
+    ("==", equals),
+    ("hashcode", hashcode),
+    ("inspect", nativeNotImplemented), -- TODO
+    ("halt", nativeNotImplemented), -- TODO
+    ("perform:", perform),
+    ("perform:withArguments:", performWithArguments),
+    ("perform:inSuperclass:", performInSuperclass),
+    ("perform:withArguments:inSuperclass:", performWithArgumentsInSuperclass),
+    ("instVarAt:", insVarAt),
+    ("instVarAt:put:", insVarAtPut),
+    ("instVarNamed:", instVarNamed)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -45,15 +46,15 @@ classMs = []
 ---------------------------------
 -- Instance
 
-classM :: (UniverseEff r, Lifted IO r) => Eff r ()
+classM :: NativeFun
 classM = pureNativeFun @N0 $ \self Nil ->
   asObject . clazz <$> getAsObject self
 
-objectSize :: (UniverseEff r, Lifted IO r) => Eff r ()
+objectSize :: NativeFun
 objectSize = pureNativeFun @N0 $ \_ Nil -> do
   newInt (-1) >>= addToGC
 
-equals :: (UniverseEff r, Lifted IO r) => Eff r ()
+equals :: NativeFun
 equals = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- getAsObject self
   b <- getAsObject other
@@ -74,7 +75,7 @@ equals = pureNativeFun @N1 $ \self (other :+: Nil) -> do
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 
-hashcode :: (UniverseEff r, Lifted IO r) => Eff r ()
+hashcode :: NativeFun
 hashcode = pureNativeFun @N0 $ \self Nil -> do
   obj <- getAsObject self
 
@@ -103,7 +104,7 @@ performCommon self aSymbol args cls = do
   mIx <- internLiteralE (SymbolLiteral sym)
   sendMessage self mIx cls args
 
-perform :: (UniverseEff r, Lifted IO r) => Eff r ()
+perform :: NativeFun
 perform = nativeFun @N1 $ \self (aSymbol :+: Nil) -> do
   clazz <-
     getAsObject self >>= getAsObject . asObject . clazz >>= \case
@@ -111,7 +112,7 @@ perform = nativeFun @N1 $ \self (aSymbol :+: Nil) -> do
       obj -> wrongObjectType obj ClassT
   performCommon self aSymbol (Arr.fromList []) clazz
 
-performWithArguments :: (UniverseEff r, Lifted IO r) => Eff r ()
+performWithArguments :: NativeFun
 performWithArguments = nativeFun @N2 $ \self (aSymbol :+: args :+: Nil) -> do
   clazz <-
     getAsObject self >>= getAsObject . asObject . clazz >>= \case
@@ -121,7 +122,7 @@ performWithArguments = nativeFun @N2 $ \self (aSymbol :+: args :+: Nil) -> do
   (arr, _) <- castArray args
   performCommon self aSymbol arr clazz
 
-performInSuperclass :: (UniverseEff r, Lifted IO r) => Eff r ()
+performInSuperclass :: NativeFun
 performInSuperclass = nativeFun @N2 $ \self (aSymbol :+: clazzIx :+: Nil) -> do
   clazz <-
     getAsObject clazzIx >>= \case
@@ -129,7 +130,7 @@ performInSuperclass = nativeFun @N2 $ \self (aSymbol :+: clazzIx :+: Nil) -> do
       obj -> wrongObjectType obj ClassT
   performCommon self aSymbol (Arr.fromList []) clazz
 
-performWithArgumentsInSuperclass :: (UniverseEff r, Lifted IO r) => Eff r ()
+performWithArgumentsInSuperclass :: NativeFun
 performWithArgumentsInSuperclass =
   nativeFun @N3 $ \self (aSymbol :+: args :+: clazzIx :+: Nil) -> do
     clazz <-
@@ -140,7 +141,7 @@ performWithArgumentsInSuperclass =
     (arr, _) <- castArray args
     performCommon self aSymbol arr clazz
 
-insVarAt :: (UniverseEff r, Lifted IO r) => Eff r ()
+insVarAt :: NativeFun
 insVarAt = pureNativeFun @N1 $ \self (idx :+: Nil) -> do
   selfObj <- getAsObject self
   i <- castInt idx
@@ -149,7 +150,7 @@ insVarAt = pureNativeFun @N1 $ \self (idx :+: Nil) -> do
     then pure (asObject (clazz selfObj))
     else maybe getNil pure $ getField (ix i - 1) selfObj
 
-insVarAtPut :: (UniverseEff r, Lifted IO r) => Eff r ()
+insVarAtPut :: NativeFun
 insVarAtPut = pureNativeFun @N2 $ \self (idx :+: obj :+: Nil) -> do
   selfObj <- getAsObject self
   i <- castInt idx
@@ -160,7 +161,7 @@ insVarAtPut = pureNativeFun @N2 $ \self (idx :+: obj :+: Nil) -> do
 
   pure self
 
-instVarNamed :: (UniverseEff r, Lifted IO r) => Eff r ()
+instVarNamed :: NativeFun
 instVarNamed = pureNativeFun @N1 $ \self (sym :+: Nil) -> do
   selfObj <- getAsObject self
   let fields = instanceFields (clazz selfObj)

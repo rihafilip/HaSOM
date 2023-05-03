@@ -22,11 +22,11 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("name", mkNativeFun nameM),
-    ("new", mkNativeFun new),
-    ("superclass", mkNativeFun superclassM),
-    ("fields", mkNativeFun fieldsM),
-    ("methods", mkNativeFun methodsM)
+  [ ("name", nameM),
+    ("new", new),
+    ("superclass", superclassM),
+    ("fields", fieldsM),
+    ("methods", methodsM)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -35,7 +35,7 @@ classMs = []
 ---------------------------------
 -- Instance
 
-nameM :: (UniverseEff r, Lifted IO r) => Eff r ()
+nameM :: NativeFun
 nameM = pureNativeFun @N0 $ \self Nil -> do
   MkVMClass {name} <-
     getAsObject self >>= \case
@@ -44,7 +44,7 @@ nameM = pureNativeFun @N0 $ \self Nil -> do
 
   newSymbol name >>= addToGC
 
-new :: (UniverseEff r, Lifted IO r) => Eff r ()
+new :: NativeFun
 new = pureNativeFun @N0 $ \self Nil -> do
   classIx <-
     getAsObject self >>= \case
@@ -53,7 +53,7 @@ new = pureNativeFun @N0 $ \self Nil -> do
 
   newInstance classIx >>= addToGC
 
-superclassM :: (UniverseEff r, Lifted IO r) => Eff r ()
+superclassM :: NativeFun
 superclassM = pureNativeFun @N0 $ \self Nil -> do
   MkVMClass {superclass} <-
     getAsObject self >>= \case
@@ -66,7 +66,7 @@ superclassM = pureNativeFun @N0 $ \self Nil -> do
     Nothing -> pure nilIx
     Just gi -> asObject <$> getClass gi
 
-fieldsM :: (UniverseEff r, Lifted IO r) => Eff r ()
+fieldsM :: NativeFun
 fieldsM = pureNativeFun @N0 $ \self Nil -> do
   MkVMClass {instanceFields} <-
     getAsObject self >>= \case
@@ -76,7 +76,7 @@ fieldsM = pureNativeFun @N0 $ \self Nil -> do
   fs <- mapM (newSymbol >=> addToGC) instanceFields
   newArray fs >>= addToGC
 
-methodsM :: (UniverseEff r, Lifted IO r) => Eff r ()
+methodsM :: NativeFun
 methodsM = pureNativeFun @N0 $ \self Nil -> do
   holder <-
     getAsObject self >>= \case
