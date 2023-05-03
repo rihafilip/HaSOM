@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 -- | Type definitions and helpers for primitive functions
 module HaSOM.VM.Primitive.Type
@@ -11,6 +12,7 @@ module HaSOM.VM.Primitive.Type
     PrimitiveContainer (..),
 
     -- * Pure function helper
+    RestrictedNativeFun,
     nativeFun,
     pureNativeFun,
 
@@ -139,28 +141,40 @@ data ArgList (size :: Nat) a where
 
 class GetArgs (n :: Nat) where
   -- | Get arguments list of size given by the type
-  getArgs :: (UniverseEff r, Lifted IO r) => Eff r (LocalIx, ArgList n ObjIx)
+  getArgs :: (UniverseEff r, Lifted IO r) => LocalIx -> Eff r (ArgList n ObjIx)
 
 instance GetArgs 'Zero where
-  getArgs = pure (1, Nil)
+  getArgs _ = pure Nil
 
 instance GetArgs n => GetArgs ('Succ n) where
-  getArgs = do
-    (next, xs) <- getArgs @n
-    x <- getLocal 0 next
-    pure (next + 1, x :+: xs)
+  getArgs n = do
+    x <- getLocal 0 n
+    xs <- getArgs @n (n+1)
+    pure (x :+: xs)
+
+type RestrictedNativeFun r = (Lifted IO r, [
+    State VMGlobalsNat,
+    Reader CoreClasses,
+    State VMLiterals,
+    State GCNat,
+    ExcT
+  ] <:: r)
 
 -- | Create a function with giving self and arguments
-nativeFun :: forall n. (GetArgs n) => (forall r. (UniverseEff r, Lifted IO r) => ObjIx -> ArgList n ObjIx -> Eff r ()) -> NativeFun
+nativeFun :: forall n. (GetArgs n) => (forall r. RestrictedNativeFun r => ObjIx -> ArgList n ObjIx -> Eff r ()) -> NativeFun
 nativeFun f = mkNativeFun $ do
   self <- getSelf
-  (_, args) <- getArgs @n
+  args <- getArgs @n 1
   f self args
   void popCallFrame
 
 -- | Create a function with giving self, arguments and returning result on stack
-pureNativeFun :: forall n. (GetArgs n) => (forall r. (UniverseEff r, Lifted IO r) => ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> NativeFun
-pureNativeFun f = nativeFun (\self args -> f self args >>= pushStack)
+pureNativeFun :: forall n. (GetArgs n) => (forall r. RestrictedNativeFun r => ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> NativeFun
+pureNativeFun f = mkNativeFun $ do
+  self <- getSelf
+  args <- getArgs @n 1
+  f self args >>= pushStack
+  void popCallFrame
 
 nativeNotImplemented :: NativeFun
 nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do

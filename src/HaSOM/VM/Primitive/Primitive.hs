@@ -56,7 +56,13 @@ holderM = pureNativeFun @N0 $ \self Nil -> do
   asObject <$> getClass holderIx
 
 invokeOnWith :: NativeFun
-invokeOnWith = nativeFun @N2 $ \self (primary :+: args :+: Nil) -> do
+invokeOnWith = mkNativeFun $ do
+  self <- getSelf
+  primary <- getLocal 0 1
+  args <- getLocal 0 2
+
+  _ <- popCallFrame
+
   (holderIx, methodValue) <-
     getAsObject self >>= \case
       PrimitiveObject {holder, methodValue} -> pure (holder, methodValue)

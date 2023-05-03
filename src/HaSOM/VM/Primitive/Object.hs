@@ -102,10 +102,14 @@ performCommon ::
 performCommon self aSymbol args cls = do
   sym <- castSymbol aSymbol
   mIx <- internLiteralE (SymbolLiteral sym)
+  _ <- popCallFrame
   sendMessage self mIx cls args
 
 perform :: NativeFun
-perform = nativeFun @N1 $ \self (aSymbol :+: Nil) -> do
+perform = mkNativeFun $ do
+  self <- getSelf
+  aSymbol <- getLocal 0 1
+
   clazz <-
     getAsObject self >>= getAsObject . asObject . clazz >>= \case
       ClassObject {classOf} -> pure classOf
@@ -113,7 +117,11 @@ perform = nativeFun @N1 $ \self (aSymbol :+: Nil) -> do
   performCommon self aSymbol (Arr.fromList []) clazz
 
 performWithArguments :: NativeFun
-performWithArguments = nativeFun @N2 $ \self (aSymbol :+: args :+: Nil) -> do
+performWithArguments = mkNativeFun $ do
+  self <- getSelf
+  aSymbol <- getLocal 0 1
+  args <- getLocal 0 2
+
   clazz <-
     getAsObject self >>= getAsObject . asObject . clazz >>= \case
       ClassObject {classOf} -> pure classOf
@@ -123,7 +131,11 @@ performWithArguments = nativeFun @N2 $ \self (aSymbol :+: args :+: Nil) -> do
   performCommon self aSymbol arr clazz
 
 performInSuperclass :: NativeFun
-performInSuperclass = nativeFun @N2 $ \self (aSymbol :+: clazzIx :+: Nil) -> do
+performInSuperclass = mkNativeFun $ do
+  self <- getSelf
+  aSymbol <- getLocal 0 1
+  clazzIx <- getLocal 0 2
+
   clazz <-
     getAsObject clazzIx >>= \case
       ClassObject {classOf} -> pure classOf
@@ -131,15 +143,19 @@ performInSuperclass = nativeFun @N2 $ \self (aSymbol :+: clazzIx :+: Nil) -> do
   performCommon self aSymbol (Arr.fromList []) clazz
 
 performWithArgumentsInSuperclass :: NativeFun
-performWithArgumentsInSuperclass =
-  nativeFun @N3 $ \self (aSymbol :+: args :+: clazzIx :+: Nil) -> do
-    clazz <-
-      getAsObject clazzIx >>= \case
-        ClassObject {classOf} -> pure classOf
-        obj -> wrongObjectType obj ClassT
+performWithArgumentsInSuperclass = mkNativeFun $ do
+  self <- getSelf
+  aSymbol <- getLocal 0 1
+  args <- getLocal 0 2
+  clazzIx <- getLocal 0 3
 
-    (arr, _) <- castArray args
-    performCommon self aSymbol arr clazz
+  clazz <-
+    getAsObject clazzIx >>= \case
+      ClassObject {classOf} -> pure classOf
+      obj -> wrongObjectType obj ClassT
+
+  (arr, _) <- castArray args
+  performCommon self aSymbol arr clazz
 
 insVarAt :: NativeFun
 insVarAt = pureNativeFun @N1 $ \self (idx :+: Nil) -> do

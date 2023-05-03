@@ -41,7 +41,7 @@ classMs :: [(Text, NativeFun)]
 classMs = []
 
 selfStr ::
-  (forall r. (UniverseEff r, Lifted IO r) => Text -> Eff r ObjIx) ->
+  (forall r. RestrictedNativeFun r => Text -> Eff r ObjIx) ->
   NativeFun
 selfStr f = pureNativeFun @N0 $ \self Nil -> do
   str <- castStringOrSymbol self
