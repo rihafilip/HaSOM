@@ -103,20 +103,23 @@ doExecute clazz args trace MkCompilationResult {..} =
                       runError @Text
                         (bootstrap clazz args >> interpret)
 
+    let doTrace =
+          if trace
+            then do
+              putStrLn ""
+              putStrLn "Stack trace:"
+              runLift (disassembleStack fGC fOs) >>= TIO.putStrLn
+              putStrLn "Call stack trace:"
+              disassembleCallStack fGC fCs >>= TIO.putStrLn
+            else do
+              putStrLn ""
+              putStrLn "Stack trace:"
+              runLift (stackTrace fCs) >>= TIO.putStrLn
+
     case res of
       Left txt -> do
         TIO.hPutStrLn stderr ("Runtime error: " <+ txt)
-        if trace
-          then do
-            putStrLn ""
-            putStrLn "Stack trace:"
-            runLift (disassembleStack fGC fOs) >>= TIO.putStrLn
-            putStrLn "Call stack trace:"
-            disassembleCallStack fGC fCs >>= TIO.putStrLn
-          else do
-            putStrLn ""
-            putStrLn "Stack trace:"
-            runLift (stackTrace fCs) >>= TIO.putStrLn
+        doTrace
         exitFailure
       Right 0 -> exitSuccess
-      Right n -> exitWith (ExitFailure n)
+      Right n -> doTrace >> exitWith (ExitFailure n)

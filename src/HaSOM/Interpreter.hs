@@ -22,6 +22,11 @@ interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
 interpret = do
   cf <- getCurrentCallFrame
 
+  let pTrace = do
+        gc <- get
+        cs <- get
+        disassembleStack gc cs >>= lift . TIO.putStrLn
+
   r <- case method cf of
     BytecodeMethod {signature, body} -> do
       ins <-
@@ -32,11 +37,14 @@ interpret = do
       whenTrace $ do
         runPrettyPrint (disassembleBytecodeInsSimple ins)
           >>= lift . TIO.putStr . (T.justifyLeft 30 ' ' signature <+)
+        pTrace
+
       advancePC
       executeInstruction ins
     NativeMethod {signature, nativeBody} -> do
       whenTrace $ do
         lift $ TIO.putStrLn (T.justifyLeft 30 ' ' signature <+ "PRIMITIVE")
+        pTrace
       runNativeFun nativeBody
 
   maybe interpret pure r
