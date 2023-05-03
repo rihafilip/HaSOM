@@ -188,7 +188,7 @@ asDouble = pureNativeFun @N0 $ \self Nil -> do
 
 intFromString :: NativeFun
 intFromString = pureNativeFun @N1 $ \_ (strIx :+: Nil) -> do
-  str <- castString strIx
+  str <- castStringOrSymbol strIx
 
   maybe getNil (newInt >=> addToGC) $
     readMaybe (T.unpack str)
