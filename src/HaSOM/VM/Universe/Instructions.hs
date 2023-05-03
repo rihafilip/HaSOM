@@ -30,6 +30,7 @@ import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
+import Data.Text.Utility ((<+))
 
 ---------------------------------------------------------------
 -- Simple operations
@@ -106,14 +107,15 @@ doSupercall li = do
   thisIx <- popStack
   clazz <- clazz <$> getAsObject thisIx
   superclass <-
-    (callErrorMessage li <?> superclass clazz)
+    throwOnNothing ("No superclass in class " <+ name clazz) (superclass clazz)
       >>= getClass
 
   doCallUnified thisIx li superclass
 
 doCallUnified :: UniverseEff r => ObjIx -> LiteralIx -> VMClassNat -> Eff r ()
 doCallUnified thisIx li clazz = do
-  method <- findMethod li clazz >>= throwOnNothing (callErrorMessage li)
+  errM <- callErrorMessage li (name clazz)
+  method <- findMethod li clazz >>= throwOnNothing errM
 
   let (pCount, lCount) = case method of
         BytecodeMethod {parameterCount, localCount} -> (parameterCount, localCount)

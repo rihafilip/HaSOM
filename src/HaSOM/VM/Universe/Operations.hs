@@ -61,8 +61,6 @@ module HaSOM.VM.Universe.Operations
     findMethod,
 
     -- * Helper functions
-    (<?>),
-    (<?.),
     onIdxErrorMessage,
     callErrorMessage,
     callFrameEnvironmentErrorMessage,
@@ -93,11 +91,6 @@ import qualified HaSOM.VM.VMArray as Arr
 ---------------------------------------------------------------
 -- Helper functions
 
-infixl 4 <?>
-
-(<?>) :: Member ExcT r => Text -> Maybe a -> Eff r a
-(<?>) = throwOnNothing
-
 infixl 4 <?.
 
 (<?.) :: Member ExcT r => Text -> (a -> Maybe b) -> a -> Eff r b
@@ -106,8 +99,10 @@ infixl 4 <?.
 onIdxErrorMessage :: Show a => Text -> a -> Text
 onIdxErrorMessage accessing idx = accessing <+ " on index " <+ showT idx <+ " doesn't exists "
 
-callErrorMessage :: LiteralIx -> Text
-callErrorMessage li = "Couldn't find method " <+ showT li
+callErrorMessage :: (LiteralEff r, Member ExcT r) => LiteralIx -> Text -> Eff r Text
+callErrorMessage li clazz = do
+  m <- showT <$> getLiteralE li
+  pure $ "Couldn't find method " <+ m <+ " in " <+ clazz
 
 callFrameEnvironmentErrorMessage :: LocalIx -> Text
 callFrameEnvironmentErrorMessage env =
@@ -186,7 +181,7 @@ getLocal env li = do
   cf <- getCurrentCallFrame
   foundCallFrame <- findCallStack env cf
   locs <-
-    locals <$> (callFrameEnvironmentErrorMessage env <?> foundCallFrame)
+    locals <$> throwOnNothing (callFrameEnvironmentErrorMessage env) foundCallFrame
   getter Arr.get "Local" li locs
   where
     findCallStack 0 cf = pure (Just cf)
@@ -208,7 +203,7 @@ setLocal env li objIx = modifyEff @CallStackNat $ \callStack ->
 
     edit cf = do
       let ls = locals cf
-      ls' <- onIdxErrorMessage "Field" li <?> Arr.set li objIx ls
+      ls' <- throwOnNothing (onIdxErrorMessage "Field" li) (Arr.set li objIx ls)
       pure cf {locals = ls'}
 
 getSelf :: (CallStackEff r, Member ExcT r, Lifted IO r) => Eff r ObjIx
@@ -235,7 +230,7 @@ setFieldE :: (CallStackEff r, GCEff r, Member ExcT r, Lifted IO r) => FieldIx ->
 setFieldE fi obj = do
   selfIdx <- getSelf
   self <- getAsObject selfIdx
-  newSelf <- onIdxErrorMessage "Field" fi <?> setField fi obj self
+  newSelf <- throwOnNothing (onIdxErrorMessage "Field" fi) (setField fi obj self)
   setObject selfIdx newSelf
 
 ---------------------------------------------------------------
@@ -342,7 +337,8 @@ createLocals self pCount lCount = do
 sendMessage :: UniverseEff r => ObjIx -> LiteralIx -> GlobalIx -> Arr.VMArray FieldIx ObjIx -> Eff r ()
 sendMessage self methodIx classIx args = do
   clazz <- getClass classIx
-  method <- findMethod methodIx clazz >>= throwOnNothing (callErrorMessage methodIx)
+  errM <- callErrorMessage methodIx (name clazz)
+  method <- findMethod methodIx clazz >>= throwOnNothing errM
 
   let (pCount, lCount) = case method of
         BytecodeMethod {parameterCount, localCount} -> (parameterCount, localCount)
