@@ -17,11 +17,11 @@ import qualified Data.Text.IO as TIO
 import Data.Text.Utility
 import qualified HaSOM.AST as AST
 import HaSOM.Compiler
+import HaSOM.Interpreter
 import HaSOM.Lexer.Alex
 import HaSOM.Parser.Happy
 import HaSOM.VM.Disassembler
 import qualified HaSOM.VM.GC as GC
-import HaSOM.Interpreter
 import HaSOM.VM.Primitive (defaultPrimitives)
 import HaSOM.VM.Universe
 import System.Directory (doesDirectoryExist, doesFileExist)
@@ -29,7 +29,6 @@ import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitSuccess, exitWith)
 import System.FilePath (takeExtension)
 import System.IO (stderr)
-import Control.Monad (when)
 
 type ExecEff r = (Lifted IO r, Member (Exc Int) r)
 
@@ -107,13 +106,17 @@ doExecute clazz args trace MkCompilationResult {..} =
     case res of
       Left txt -> do
         TIO.hPutStrLn stderr ("Runtime error: " <+ txt)
-        when trace $ do
-          putStrLn ""
-          putStrLn "Call stack trace:"
-          disassembleCallStack fGC fCs >>= TIO.putStrLn
-          putStrLn ""
-          putStrLn "Stack trace:"
-          TIO.putStrLn (disassembleStack fGC fOs)
+        if trace
+          then do
+            putStrLn ""
+            putStrLn "Stack trace:"
+            runLift (disassembleStack fGC fOs) >>= TIO.putStrLn
+            putStrLn "Call stack trace:"
+            disassembleCallStack fGC fCs >>= TIO.putStrLn
+          else do
+            putStrLn ""
+            putStrLn "Stack trace:"
+            runLift (stackTrace fCs) >>= TIO.putStrLn
         exitFailure
       Right 0 -> exitSuccess
       Right n -> exitWith (ExitFailure n)

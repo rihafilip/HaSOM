@@ -7,6 +7,7 @@ module HaSOM.VM.Universe
   ( -- * Tracing flag definition
     Trace(..),
     traceFromBool,
+    whenTrace,
 
     -- * Native function specialization of parametrized types
     CallFrameNat,
@@ -42,7 +43,7 @@ where
 import Control.Eff (Eff, type (<::), Lifted)
 import Control.Eff.ExcT (ExcT)
 import Control.Eff.Extend (Member)
-import Control.Eff.Reader.Strict (Reader)
+import Control.Eff.Reader.Strict (Reader, ask)
 import Control.Eff.State.Strict (State)
 import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
@@ -55,6 +56,11 @@ data Trace = DoTrace | NoTrace
 traceFromBool :: Bool -> Trace
 traceFromBool True = DoTrace
 traceFromBool False = NoTrace
+
+whenTrace :: TraceEff r => Eff r () -> Eff r ()
+whenTrace f = ask >>= \case
+  DoTrace -> f
+  NoTrace -> pure ()
 
 -----------------------------------
 

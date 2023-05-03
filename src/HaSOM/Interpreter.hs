@@ -10,7 +10,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility (showT, (<+))
-import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple)
+import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple, disassembleStack)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
@@ -28,14 +28,16 @@ interpret = do
         throwOnNothing
           ("Index " <+ showT (pc cf) <+ " fell out of code block")
           (getInstruction (pc cf) body)
+
+      whenTrace $ do
+        runPrettyPrint (disassembleBytecodeInsSimple ins)
+          >>= lift . TIO.putStr . (T.justifyLeft 30 ' ' signature <+)
       advancePC
       executeInstruction ins
     NativeMethod {signature, nativeBody} -> do
+      whenTrace $ do
+        lift $ TIO.putStrLn (T.justifyLeft 30 ' ' signature <+ "PRIMITIVE")
       runNativeFun nativeBody
-      ask >>= \case
-        NoTrace -> pure ()
-        DoTrace -> do
-          lift $ TIO.putStrLn ("Entering: " <+ signature)
       pure Nothing
 
   maybe interpret pure r
