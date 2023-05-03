@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE GADTs #-}
 
 module HaSOM.VM.Primitive.Block (primitives, value) where
 
@@ -21,7 +22,7 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("value", mkNativeFun value),
+  [ ("value", mkNativeFun $ value "Block>>value"),
     ("restart", mkNativeFun restart)
   ]
 
@@ -31,10 +32,8 @@ classMs = []
 ---------------------------------
 -- Instance
 
-value :: (CallStackEff r, ObjStackEff r, Member ExcT r, GCEff r, Lifted IO r) => Eff r ()
-value = do
-  objIx <- popStack
-
+value :: (UniverseEff r, Lifted IO r) => Text -> Eff r ()
+value signature = nativeFun @N0 $ \objIx Nil -> do
   (blockCapturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
     getAsObject objIx >>= \case
       BlockObject {blockCapturedFrame, block} -> pure (blockCapturedFrame, block)
@@ -44,7 +43,8 @@ value = do
         BytecodeMethod
           { body = blockBody,
             parameterCount = blockParameterCount,
-            localCount = blockLocalCount
+            localCount = blockLocalCount,
+            signature = signature
           }
 
   selfIx <- getSelf
@@ -59,6 +59,7 @@ value = do
             capturedFrame = blockCapturedFrame
           }
 
+  _ <- popCallFrame
   pushCallFrame cf
 
 restart :: (CallStackEff r, Member ExcT r, SetMember Lift (Lift IO) r) => Eff r ()

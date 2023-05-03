@@ -56,6 +56,10 @@ module HaSOM.VM.Universe.Operations
     newBlock,
     newArray,
 
+    -- ** Method manipulation
+    sendMessage,
+    findMethod,
+
     -- * Helper functions
     (<?>),
     (<?.),
@@ -334,3 +338,38 @@ createLocals self pCount lCount = do
           "Not enough parameters on stack"
             <?. St.pop
       mkArgs (n - 1) (idx : acc)
+
+sendMessage :: UniverseEff r => ObjIx -> LiteralIx -> GlobalIx -> Arr.VMArray FieldIx ObjIx -> Eff r ()
+sendMessage self methodIx classIx args = do
+  clazz <- getClass classIx
+  method <- findMethod methodIx clazz >>= throwOnNothing (callErrorMessage methodIx)
+
+  let (pCount, lCount) = case method of
+        BytecodeMethod {parameterCount, localCount} -> (parameterCount, localCount)
+        NativeMethod {parameterCount} -> (parameterCount, 0)
+
+  nilIx <- getNil
+
+  let argsL = Arr.length args
+  let args'
+        | argsL < pCount = Arr.toList args ++ replicate (pCount - argsL) nilIx
+        | otherwise = drop pCount $ Arr.toList args
+
+  let locals =  Arr.fromList (self : ( args' ++ replicate lCount nilIx ))
+
+  let cf =
+        MethodCallFrame
+          { method,
+            pc = 0,
+            locals
+          }
+  pushCallFrame cf
+
+findMethod :: (GlobalsEff r, Member ExcT r) => LiteralIx -> VMClassNat -> Eff r (Maybe VMMethodNat)
+findMethod litIx MkVMClass {methods, superclass} =
+  case (superclass, getMethod litIx methods) of
+    (_, Just m) -> pure $ Just m
+    (Just superIx, Nothing) -> do
+      super <- getClass superIx
+      findMethod litIx super
+    (Nothing, Nothing) -> pure Nothing

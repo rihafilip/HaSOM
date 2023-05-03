@@ -29,34 +29,30 @@ instanceMs =
 classMs :: [(Text, NativeFun)]
 classMs = [ ("new:", mkNativeFun new) ]
 
-castArray :: Member ExcT r => VMObjectNat -> Eff r (Arr.VMArray FieldIx ObjIx, Arr.VMArray FieldIx ObjIx -> VMObjectNat)
-castArray obj@ArrayObject {arrayValue} = pure (arrayValue, \val -> obj {arrayValue = val})
-castArray obj = wrongObjectType obj ArrayT
-
 ---------------------------------
 -- Instance
 
-at :: UniverseEff r => Eff r ()
+at :: (UniverseEff r, Lifted IO r) => Eff r ()
 at = pureNativeFun @N1 $ \self (atI :+: Nil) -> do
-  (arr, _) <- getAsObject self >>= castArray
+  (arr, _) <- castArray self
   atInt <- castInt atI
 
-  maybe getNil pure $ Arr.get (ix atInt) arr
+  maybe getNil pure $ Arr.get (ix atInt - 1) arr
 
-atPut :: UniverseEff r =>Eff r ()
+atPut :: (UniverseEff r, Lifted IO r) =>Eff r ()
 atPut = pureNativeFun @N2 $ \self (atI :+: val :+: Nil) -> do
-  (arr, selfUpdate) <- getAsObject self >>= castArray
+  (arr, selfUpdate) <- castArray self
   atInt <- castInt atI
 
-  let newArr = selfUpdate <$> Arr.set (ix atInt) val arr
+  let newArr = selfUpdate <$> Arr.set (ix atInt - 1) val arr
 
   maybe (pure ()) (setObject self) newArr
 
   pure self
 
-lengthA :: UniverseEff r => Eff r ()
+lengthA :: (UniverseEff r, Lifted IO r) => Eff r ()
 lengthA = pureNativeFun @N0 $ \self Nil -> do
-   (arr, _) <- getAsObject self >>= castArray
+   (arr, _) <- castArray self
    let l = Arr.length arr
    newInt l >>= addToGC
 
@@ -64,7 +60,7 @@ lengthA = pureNativeFun @N0 $ \self Nil -> do
 ---------------------------------
 -- Class
 
-new :: UniverseEff r => Eff r ()
+new :: (UniverseEff r, Lifted IO r) => Eff r ()
 new = pureNativeFun @N1 $ \_ (sizeI :+: Nil) -> do
   size <- castInt sizeI
   nil <- getNil

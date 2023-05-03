@@ -110,12 +110,12 @@ disassembleMethod_ name NativeMethod {parameterCount} = do
 -----------------------------------------------------------
 
 disassembleClass_ :: (GlobalsEff r, LiteralEff r, PrettyPrintEff r) => VMClassNat -> Eff r ()
-disassembleClass_ MkVMClass {fieldsCount, superclass, methods} = do
+disassembleClass_ MkVMClass {instanceFields, superclass, methods} = do
   superclassT <- maybe (pure "none") className superclass
   ms <- mapM (\(idx, m) -> (,m) <$> literalName idx) $ methodsAsList methods
 
   "Superclass" .: quote superclassT
-  "Fields count" .: showT fieldsCount
+  "Fields" .: formatList (Arr.toList instanceFields)
   addLine "Methods:"
   indented $ mapM_ (\(n, m) -> disassembleMethod_ n m >> addLine "") ms
 
@@ -159,12 +159,12 @@ disassembleClassSimple :: (GlobalsEff r, LiteralEff r) => Text -> Eff r Text
 disassembleClassSimple name = runPrettyPrint $ do
   "Name" .: name
   get @VMGlobalsNat >>= \globs -> case getGlobal (snd $ internGlobal name globs) globs of
-    Just (ClassGlobal MkVMClass {fieldsCount, superclass, methods}) -> do
+    Just (ClassGlobal MkVMClass {instanceFields, superclass, methods}) -> do
       superclassT <- maybe (pure "none") className superclass
       ms <- mapM (\(midx, m) -> (,m) <$> literalName midx) $ methodsAsList methods
 
       "Superclass" .: quote superclassT
-      "Fields count" .: showT fieldsCount
+      "Fields" .: formatList (Arr.toList instanceFields)
       addLine "Methods:"
       indented $ mapM_ (\(n, m) -> disassembleMethodSimple n m >> addLine "") ms
     _ -> addLine "Not a class"

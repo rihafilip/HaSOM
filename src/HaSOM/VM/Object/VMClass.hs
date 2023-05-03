@@ -1,13 +1,16 @@
 -- | VM Class definiton
 module HaSOM.VM.Object.VMClass (VMClass (..), CoreClasses (..)) where
 
-import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
+import HaSOM.VM.Object.Ix (FieldIx, GlobalIx, ObjIx)
 import HaSOM.VM.Object.VMMethod (VMMethods)
+import Data.Text (Text)
+import HaSOM.VM.VMArray (VMArray)
 
 -- | Representation of SOM Class,
 -- parametrised by native function type
 data VMClass f = MkVMClass
-  { fieldsCount :: Int,
+  { name :: Text,
+    instanceFields :: VMArray FieldIx Text,
     superclass :: Maybe GlobalIx,
     asObject :: ObjIx,
     methods :: VMMethods f

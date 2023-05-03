@@ -9,7 +9,7 @@ import HaSOM.VM.Universe.Operations
 primitives :: PrimitiveContainer
 primitives =
   MkPrimitiveContainer
-    { name = "Array",
+    { name = "Double",
       instanceMethods = instanceMs,
       classMethods = classMs
     }

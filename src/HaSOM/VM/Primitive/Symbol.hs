@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
 module HaSOM.VM.Primitive.Symbol (primitives) where
 
 import Data.Text (Text)
@@ -26,7 +27,7 @@ classMs = []
 ---------------------------------
 -- Instance
 
-asString :: UniverseEff r => Eff r ()
+asString :: (UniverseEff r, Lifted IO r) => Eff r ()
 asString = pureNativeFun @N0 $ \self Nil -> do
   symbol <- castSymbol self
   newString symbol >>= addToGC

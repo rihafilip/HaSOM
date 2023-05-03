@@ -14,23 +14,25 @@ module HaSOM.VM.Object.VMObject
   )
 where
 
+import Data.IORef (IORef)
 import Data.Text (Text)
+import HaSOM.VM.Object.CallStack (CallFrame)
 import HaSOM.VM.Object.Ix
-import qualified HaSOM.VM.VMArray as Arr
 import HaSOM.VM.Object.VMBlock
 import HaSOM.VM.Object.VMClass
-import HaSOM.VM.Object.VMMethod (VMMethod)
-import HaSOM.VM.Object.CallStack (CallFrame)
-import Data.IORef (IORef)
+import qualified HaSOM.VM.VMArray as Arr
 
 -------------------------------------------------------
 
 -- | Fields in an objects defintion
-newtype Fields = MkFields { runFields :: Arr.VMArray FieldIx ObjIx }
+newtype Fields = MkFields {runFields :: Arr.VMArray FieldIx ObjIx}
+
+instance Show Fields where
+  show = show . runFields
 
 -- | Create new fields for a class with given nil object
 newFields :: VMClass f -> ObjIx -> Fields
-newFields MkVMClass {fieldsCount} nil = MkFields $ Arr.new fieldsCount nil
+newFields MkVMClass {instanceFields} nil = MkFields $ Arr.new (Arr.length instanceFields) nil
 
 -- | Set field in object
 setField :: FieldIx -> ObjIx -> VMObject f -> Maybe (VMObject f)
@@ -94,11 +96,12 @@ data VMObject f
   | MethodObject
       { clazz :: VMClass f,
         fields :: Fields,
-        methodValue :: VMMethod f
+        methodValue :: LiteralIx,
+        holder :: GlobalIx
       }
   | PrimitiveObject
       { clazz :: VMClass f,
         fields :: Fields,
-        primitiveValue :: f
+        methodValue :: LiteralIx,
+        holder :: GlobalIx
       }
-

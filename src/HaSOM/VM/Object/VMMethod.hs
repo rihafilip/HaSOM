@@ -18,19 +18,22 @@ where
 import qualified Data.HashMap.Strict as Map
 import HaSOM.VM.Object.Bytecode (Code)
 import HaSOM.VM.Object.Ix (LiteralIx)
+import Data.Text (Text)
 
 -- | VM representation of SOM method,
 -- polymorphic on native method type
 data VMMethod f
   = -- | Method represented in bytecode
     BytecodeMethod
-      { body :: Code,
+      { signature :: Text,
+        body :: Code,
         parameterCount :: Int,
         localCount :: Int
       }
   | -- | Method represented by Haskell function
     NativeMethod
-      { nativeBody :: f,
+      { signature :: Text,
+        nativeBody :: f,
         parameterCount :: Int
       }
 

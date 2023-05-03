@@ -157,14 +157,3 @@ doNonlocalReturn = do
           MethodCallFrame {} -> pure (Just capturedFrame)
           cf@BlockCallFrame {} -> getTarget cf
     getTarget _ = pure Nothing
-
----------------------------------------------------------------
-
-findMethod :: (GlobalsEff r, Member ExcT r) => LiteralIx -> VMClassNat -> Eff r (Maybe VMMethodNat)
-findMethod litIx MkVMClass {methods, superclass} =
-  case (superclass, getMethod litIx methods) of
-    (_, Just m) -> pure $ Just m
-    (Just superIx, Nothing) -> do
-      super <- getClass superIx
-      findMethod litIx super
-    (Nothing, Nothing) -> pure Nothing

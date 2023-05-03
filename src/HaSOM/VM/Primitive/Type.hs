@@ -16,6 +16,7 @@ module HaSOM.VM.Primitive.Type
     wrongObjectType,
 
     -- * Pure function helper
+    nativeFun,
     pureNativeFun,
 
     -- ** Arguments types
@@ -30,16 +31,22 @@ module HaSOM.VM.Primitive.Type
     castDouble,
     castString,
     castSymbol,
+    castArray,
+
+    -- * Not implemented helper
+    nativeNotImplemented,
   )
 where
 
 import Control.Eff
 import Control.Eff.ExcT
+import Control.Monad (void)
 import Data.Text (Text)
 import Data.Text.Utility ((<+))
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
-import HaSOM.VM.Universe.Operations (getAsObject, popStack, pushStack)
+import HaSOM.VM.Universe.Operations
+import qualified HaSOM.VM.VMArray as Arr
 
 data PrimitiveContainer = MkPrimitiveContainer
   { name :: Text,
@@ -61,6 +68,7 @@ data ObjectType
   | BlockT
   | MethodT
   | PrimitiveT
+  | NumT
   deriving (Eq, Show)
 
 -- | Object type to String
@@ -76,6 +84,7 @@ formatObjectT = \case
   BlockT -> "Block"
   MethodT -> "Method"
   PrimitiveT -> "Primitive"
+  NumT -> "Int or Double"
 
 -- | Get object enumeration based on it's type
 fromObject :: VMObjectNat -> ObjectType
@@ -126,23 +135,28 @@ data ArgList (size :: Nat) a where
 
 class GetArgs (n :: Nat) where
   -- | Get arguments list of size given by the type
-  getArgs :: UniverseEff r => Eff r (ArgList n ObjIx)
+  getArgs :: (UniverseEff r, Lifted IO r) => Eff r (LocalIx, ArgList n ObjIx)
 
 instance GetArgs 'Zero where
-  getArgs = pure Nil
+  getArgs = pure (1, Nil)
 
 instance GetArgs n => GetArgs ('Succ n) where
   getArgs = do
-    xs <- getArgs @n
-    x <- popStack
-    pure $ x :+: xs
+    (next, xs) <- getArgs @n
+    x <- getLocal 0 next
+    pure (next + 1, x :+: xs)
+
+-- | Create a function with giving self and arguments
+nativeFun :: forall n r. (GetArgs n, UniverseEff r, Lifted IO r) => (ObjIx -> ArgList n ObjIx -> Eff r ()) -> Eff r ()
+nativeFun f = do
+  self <- getSelf
+  (_, args) <- getArgs @n
+  f self args
+  void popCallFrame
 
 -- | Create a function with giving self, arguments and returning result on stack
-pureNativeFun :: forall n r. (GetArgs n, UniverseEff r) => (ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> Eff r ()
-pureNativeFun f = do
-  self <- popStack
-  args <- getArgs @n
-  f self args >>= pushStack
+pureNativeFun :: forall n r. (GetArgs n, UniverseEff r, Lifted IO r) => (ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> Eff r ()
+pureNativeFun f = nativeFun (\self args -> f self args >>= pushStack)
 
 --------------------------------------------------
 
@@ -169,3 +183,14 @@ castSymbol idx =
   getAsObject idx >>= \case
     SymbolObject {symbolValue} -> pure symbolValue
     obj -> wrongObjectType obj SymbolT
+
+castArray :: (GCEff r, Member ExcT r) => ObjIx -> Eff r (Arr.VMArray FieldIx ObjIx, Arr.VMArray FieldIx ObjIx -> VMObjectNat)
+castArray idx =
+  getAsObject idx >>= \case
+    obj@ArrayObject {arrayValue} -> pure (arrayValue, \val -> obj {arrayValue = val})
+    obj -> wrongObjectType obj ArrayT
+
+nativeNotImplemented :: (Lifted IO r, UniverseEff r) => Eff r ()
+nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do
+  lift $ putStrLn "TODO: Not yet implemented"
+  pure self

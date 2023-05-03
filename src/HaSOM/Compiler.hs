@@ -16,7 +16,7 @@ import Control.Eff.State.Strict
 import Control.Monad (forM)
 import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as Map
-import Data.List (intercalate, singleton)
+import Data.List (intercalate, singleton, sortOn)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.LookupMap as LM
@@ -30,6 +30,7 @@ import HaSOM.VM.Object hiding (getLiteral, locals)
 import HaSOM.VM.Primitive (compilePrimitives)
 import HaSOM.VM.Primitive.Type (PrimitiveContainer)
 import HaSOM.VM.Universe
+import qualified HaSOM.VM.VMArray as Arr
 
 ------------------------------------------------------------
 -- Compilation orchestration
@@ -276,7 +277,8 @@ compileAlgebra = MkAlgebra {..}
               <&> \nativeBody ->
                 NativeMethod
                   { nativeBody,
-                    parameterCount = length params
+                    parameterCount = length params,
+                    signature = className <+ ">>" <+ mName
                   }
 
       -- Literal for this method
@@ -285,6 +287,7 @@ compileAlgebra = MkAlgebra {..}
 
     -- Compiled method
     method typ (Just b) = do
+      MkClassCtx {className} <- ask
       -- signature
       let (mName, params) = methodSignature typ
 
@@ -301,7 +304,8 @@ compileAlgebra = MkAlgebra {..}
             BytecodeMethod
               { body,
                 parameterCount = length params,
-                localCount
+                localCount,
+                signature = className <+ ">>" <+ mName
               }
           )
 
@@ -421,7 +425,8 @@ compileClass name supername thisFields methods superFields = do
 
   let clazz asObjectIx =
         MkVMClass
-          { fieldsCount = length fields,
+          { name = name,
+            instanceFields = Arr.fromList $ map fst $ sortOn snd $ Map.toList fields,
             superclass,
             asObject = asObjectIx,
             methods = cMethods
