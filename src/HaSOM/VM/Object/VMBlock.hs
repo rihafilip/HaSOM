@@ -1,7 +1,7 @@
 -- | VM Block definiton
 module HaSOM.VM.Object.VMBlock (VMBlock (..)) where
 
-import HaSOM.VM.Object.Bytecode (Code)
+import HaSOM.Bytecode (Code)
 
 -- | Representation of SOM Block,
 -- parametrised by native function type

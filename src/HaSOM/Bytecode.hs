@@ -1,5 +1,5 @@
 -- | VM Bytecode definition
-module HaSOM.VM.Object.Bytecode(Bytecode(..), Code, code, getInstruction, codeAsList) where
+module HaSOM.Bytecode(Bytecode(..), Code, code, getInstruction, codeAsList) where
 import HaSOM.VM.VMArray (VMArray)
 import qualified HaSOM.VM.VMArray as Arr
 import HaSOM.VM.Object.Ix

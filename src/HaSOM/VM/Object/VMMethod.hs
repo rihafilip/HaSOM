@@ -16,7 +16,7 @@ module HaSOM.VM.Object.VMMethod
 where
 
 import qualified Data.HashMap.Strict as Map
-import HaSOM.VM.Object.Bytecode (Code)
+import HaSOM.Bytecode (Code)
 import HaSOM.VM.Object.Ix (LiteralIx)
 import Data.Text (Text)
 
