@@ -21,7 +21,7 @@ import HaSOM.Lexer.Alex
 import HaSOM.Parser.Happy
 import HaSOM.VM.Disassembler
 import qualified HaSOM.VM.GC as GC
-import HaSOM.VM.Interpreter
+import HaSOM.Interpreter
 import HaSOM.VM.Primitive (defaultPrimitives)
 import HaSOM.VM.Universe
 import System.Directory (doesDirectoryExist, doesFileExist)

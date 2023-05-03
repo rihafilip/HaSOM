@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 -- | Code execution methods
-module HaSOM.VM.Interpreter (interpret, bootstrap) where
+module HaSOM.Interpreter (interpret, bootstrap) where
 
 import Control.Monad ((>=>))
 import Data.Functor ((<&>))
@@ -9,12 +9,14 @@ import Data.PrettyPrint (runPrettyPrint)
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility (showT, (<+))
-import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple)
+import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple, disassembleCallStack)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
+import GHC.IO.Exception (ExitCode(..))
+import System.Exit (exitWith)
 
 -- | Run the interpreter
 interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
@@ -29,9 +31,18 @@ interpret = do
           (getInstruction (pc cf) body)
       advancePC
       executeInstruction ins
-    NativeMethod {nativeBody} -> do
+    NativeMethod {signature, nativeBody} -> do
       runNativeFun nativeBody
-      pure Nothing
+      ask >>= \case
+        NoTrace -> pure ()
+        DoTrace -> do
+          lift $ TIO.putStrLn ("Entering: " <+ signature)
+          gc <- get
+          cs <- get
+          lift $ disassembleCallStack gc cs >>= TIO.putStr
+      if signature == "Block1>>value"
+        then lift $ exitWith (ExitFailure 100)
+        else pure Nothing
 
   maybe interpret pure r
 
