@@ -14,19 +14,14 @@ module Data.Stack
     popn,
     top,
 
-    -- * Indexed stack operations
+    -- * Size of stack
     size,
-    reserve,
-    getAt,
   )
 where
-
-import Data.Maybe.Utility (maybeFromRight)
 
 -- | Index in stack
 type StackIx = Int
 
--- TODO as Vector
 -- | The type of indexed stack
 newtype Stack a = MkStack
   { stackData :: [a]
@@ -77,19 +72,3 @@ top = fmap snd . pop
 -- | Return the size of the stack
 size :: Stack a -> Int
 size = length . stackData
-
----------------------------------------
-
--- | Push the given item n times on top of the stack
-reserve :: StackIx -> a -> Stack a -> Stack a
-reserve n x st@MkStack {stackData} = st {stackData = replicate n x ++ stackData}
-
--- | Get the item on given index, indexing from bottom
-getAt :: StackIx -> Stack a -> Maybe a
-getAt idx MkStack {stackData} =
-  maybeFromRight $ foldr f (Left idx) stackData
-  where
-    f :: a -> Either Int a -> Either Int a
-    f x (Left 0) = Right x
-    f _ (Left x) = Left (x - 1)
-    f _ r@(Right _) = r

@@ -39,27 +39,12 @@ spec = describe "Stack data type" $ do
   it "Size of an empty stack is zero" $
     size emptyStack `shouldBe` 0
 
-  it "getAt returns correctly" $ do
-    mapM_ (\ix -> getAt ix exampleStack `shouldBe` Just ix) exampleList
-    getAt (-1) exampleStack `shouldBe` Nothing
-    getAt 7 exampleStack `shouldBe` Nothing
-
-  it "reserve pushes correct elements" $ do
-    let st = reserve 3 (-1) exampleStack
-    getAt 7 st `shouldBe` Just (-1)
-    getAt 8 st `shouldBe` Just (-1)
-    getAt 9 st `shouldBe` Just (-1)
-    getAt 10 st `shouldBe` Nothing
-
   -- Props
   prop "FIFO behaviour on push-pop" prop_PushPop
   prop "FIFO behaviour on push-top" prop_TopLast
   prop "pop, popSt and top behave the same" prop_TopAccess
   prop "popn can pop up to the size of stack" prop_PopNTimes
   prop "popn 0 is identity" prop_PopNId
-
-  prop "reserve changes the size by given size" prop_ReserveSize
-  prop "reserve and popn behave as identity" prop_ReservePopnId
 
 ---------------------------------------------------------
 
@@ -79,13 +64,3 @@ prop_PopNTimes st = popn (size st) st `shouldBe` Just emptyStack
 
 prop_PopNId :: Stack Int -> Expectation
 prop_PopNId st = popn 0 st `shouldBe` Just st
-
-prop_ReserveSize :: Int -> Stack Int -> Expectation
-prop_ReserveSize count st
-  | count >= 0 = (size st + count) `shouldBe` reservedSize
-  | otherwise = size st `shouldBe` reservedSize
-  where
-    reservedSize = size (reserve count 0 st)
-
-prop_ReservePopnId :: Int -> Stack Int -> Expectation
-prop_ReservePopnId count st = popn count (reserve count 0 st) `shouldBe` Just st
