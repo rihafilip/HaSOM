@@ -11,6 +11,8 @@ import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
+import Control.Eff.IO.Utility (lreadIORef)
+import Data.Maybe (fromMaybe)
 
 primitives :: PrimitiveContainer
 primitives =
@@ -34,7 +36,8 @@ classMs = []
 
 -- TODO pops automatically
 value :: Text -> NativeFun
-value signature = nativeFun @N0 $ \objIx Nil -> do
+value signature = mkNativeFun $ do
+  objIx <- getSelf
   (blockCapturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
     getAsObject objIx >>= \case
       BlockObject {blockCapturedFrame, block} -> pure (blockCapturedFrame, block)
@@ -48,7 +51,7 @@ value signature = nativeFun @N0 $ \objIx Nil -> do
             signature = signature
           }
 
-  selfIx <- getSelf
+  selfIx <- fromMaybe objIx . Arr.get 0 . locals <$> lreadIORef blockCapturedFrame
 
   locals <- Arr.fromList <$> createLocals selfIx blockParameterCount blockLocalCount
 
@@ -60,7 +63,10 @@ value signature = nativeFun @N0 $ \objIx Nil -> do
             capturedFrame = blockCapturedFrame
           }
 
+  -- Pop the current callframe
   _ <- popCallFrame
+
+  -- Push the new call frame
   pushCallFrame cf
 
 -- TODO reset stack
