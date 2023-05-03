@@ -11,7 +11,7 @@ import Data.Hashable (Hashable (hash))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Utility ((<+))
-import HaSOM.VM.Object (ObjIx)
+import HaSOM.VM.Object
 import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
@@ -44,7 +44,7 @@ selfStr ::
   (forall r. (UniverseEff r, Lifted IO r) => Text -> Eff r ObjIx) ->
   NativeFun
 selfStr f = pureNativeFun @N0 $ \self Nil -> do
-  str <- castString self
+  str <- castStringOrSymbol self
   f str
 
 ---------------------------------
@@ -52,8 +52,8 @@ selfStr f = pureNativeFun @N0 $ \self Nil -> do
 
 concatM :: NativeFun
 concatM = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  selfT <- castString self
-  otherT <- castString other
+  selfT <- castStringOrSymbol self
+  otherT <- castStringOrSymbol other
 
   newString (selfT <+ otherT) >>= addToGC
 
@@ -85,16 +85,21 @@ isDigits = isPredicate isDigit
 
 equal :: NativeFun
 equal = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  selfT <- castString self
-  otherT <- castString other
+  selfObj <- getAsObject self
+  otherObj <- getAsObject other
 
-  if selfT == otherT
+  let res = case (selfObj, otherObj) of
+        (StringObject {stringValue = s1}, StringObject {stringValue = s2}) -> s1 == s2
+        (SymbolObject {symbolValue = s1}, SymbolObject {symbolValue = s2}) -> s1 == s2
+        _ -> False
+
+  if res
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 
 substringFromTo :: NativeFun
 substringFromTo = pureNativeFun @N2 $ \self (from :+: to :+: Nil) -> do
-  str <- castString self
+  str <- castStringOrSymbol self
   fromI <- castInt from
   toI <- castInt to
 

@@ -29,11 +29,12 @@ module HaSOM.VM.Primitive.Type
     fromObject,
     wrongObjectType,
 
-    -- ** Cast an objet to type
+    -- ** Cast an object to type
     castInt,
     castDouble,
     castString,
     castSymbol,
+    castStringOrSymbol,
     castArray,
 
     -- * Not implemented helper
@@ -189,6 +190,13 @@ castString idx =
 castSymbol :: (GCEff r, Member ExcT r) => ObjIx -> Eff r Text
 castSymbol idx =
   getAsObject idx >>= \case
+    SymbolObject {symbolValue} -> pure symbolValue
+    obj -> wrongObjectType obj SymbolT
+
+castStringOrSymbol :: (GCEff r, Member ExcT r) => ObjIx -> Eff r Text
+castStringOrSymbol idx =
+  getAsObject idx >>= \case
+    StringObject {stringValue} -> pure stringValue
     SymbolObject {symbolValue} -> pure symbolValue
     obj -> wrongObjectType obj SymbolT
 

@@ -26,7 +26,7 @@ import HaSOM.VM.Primitive (defaultPrimitives)
 import HaSOM.VM.Universe
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.Directory.Recursive (getFilesRecursive)
-import System.Exit (ExitCode (ExitFailure), exitFailure, exitWith)
+import System.Exit (ExitCode (ExitFailure), exitFailure, exitSuccess, exitWith)
 import System.FilePath (takeExtension)
 import System.IO (stderr)
 import Control.Monad (when)
@@ -115,4 +115,5 @@ doExecute clazz args trace MkCompilationResult {..} =
           putStrLn "Stack trace:"
           TIO.putStrLn (disassembleStack fGC fOs)
         exitFailure
+      Right 0 -> exitSuccess
       Right n -> exitWith (ExitFailure n)

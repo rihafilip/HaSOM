@@ -24,19 +24,24 @@ import qualified Data.Stack as St
 import HaSOM.VM.Object.Ix
 import HaSOM.VM.Object.VMMethod (VMMethod)
 import HaSOM.VM.VMArray (VMArray)
+import HaSOM.VM.Object.VMClass (VMClass)
 
 -- | Call frame,
 -- parametrised by native function type
 data CallFrame f
   = MethodCallFrame
-      { method :: VMMethod f,
-        pc :: InsIx,
-        locals :: VMArray LocalIx ObjIx
-      }
-  | BlockCallFrame
-      { method :: VMMethod f,
+      { methodHolder :: VMClass f,
+        method :: VMMethod f,
         pc :: InsIx,
         locals :: VMArray LocalIx ObjIx,
+        callStackHeight :: Int
+      }
+  | BlockCallFrame
+      { methodHolder :: VMClass f,
+        method :: VMMethod f,
+        pc :: InsIx,
+        locals :: VMArray LocalIx ObjIx,
+        callStackHeight :: Int,
         capturedFrame :: IORef (CallFrame f)
       }
 

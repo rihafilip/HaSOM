@@ -1,9 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeApplications #-}
 
 module HaSOM.VM.Primitive.Block (primitives, value) where
 
+import Control.Eff.IO.Utility (lreadIORef)
+import Control.Eff.Utility (modifyEff)
 import qualified Data.Stack as St
 import Data.Text (Text)
 import HaSOM.VM.Object
@@ -11,8 +13,6 @@ import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
-import Control.Eff.IO.Utility (lreadIORef)
-import Data.Maybe (fromMaybe)
 
 primitives :: PrimitiveContainer
 primitives =
@@ -34,12 +34,15 @@ classMs = []
 ---------------------------------
 -- Instance
 
--- TODO pops automatically
 value :: Text -> NativeFun
 value signature = mkNativeFun $ do
-  objIx <- getSelf
+  blockIx <- getSelf
+
+  -- Pop the current callframe
+  prevCallFrame <- popCallFrame
+
   (blockCapturedFrame, MkVMBlock {blockBody, blockLocalCount, blockParameterCount}) <-
-    getAsObject objIx >>= \case
+    getAsObject blockIx >>= \case
       BlockObject {blockCapturedFrame, block} -> pure (blockCapturedFrame, block)
       obj -> wrongObjectType obj BlockT
 
@@ -51,25 +54,44 @@ value signature = mkNativeFun $ do
             signature = signature
           }
 
-  selfIx <- fromMaybe objIx . Arr.get 0 . locals <$> lreadIORef blockCapturedFrame
+  selfIx <-
+    lreadIORef blockCapturedFrame
+      >>= throwOnNothing "No local in block construction" . Arr.get 0 . locals
 
-  locals <- Arr.fromList <$> createLocals selfIx blockParameterCount blockLocalCount
+  nilIx <- getNil
+  let placeholderLocals = Arr.fromList (replicate blockLocalCount nilIx)
+  locals <-
+    getCallFrame prevCallFrame
+      >>= throwOnNothing "An empty array" -- should not happen
+        . Arr.set 0 selfIx -- set the 'self' to the holder object
+        . (`Arr.append` placeholderLocals) -- push back place for locals
+        . locals -- get current locals with
+  methodHolder <- clazz <$> getAsObject selfIx
+  callStackHeight <- St.size <$> get @CallStackNat
 
   let cf =
         BlockCallFrame
-          { method = method,
+          { methodHolder,
+            method = method,
             pc = 0,
             locals,
+            callStackHeight,
             capturedFrame = blockCapturedFrame
           }
-
-  -- Pop the current callframe
-  _ <- popCallFrame
 
   -- Push the new call frame
   pushCallFrame cf
 
--- TODO reset stack
 restart :: NativeFun
 restart = mkNativeFun $ do
-  popCallFrame >>= flip modifyCallFrame (\cf -> pure cf {pc = 0}) >>= modify @CallStackNat . St.push
+  _ <- popCallFrame -- Block>>restart call frame
+  callIt <- popCallFrame
+  csHeigth <- callStackHeight <$> getCallFrame callIt
+
+  modifyCallFrame callIt (\cf -> pure cf {pc = 0})
+    >>= modify @CallStackNat . St.push
+
+  modifyEff @ObjStack $ \st ->
+    throwOnNothing
+      "Reseting too small of a stack in Block>>restart"
+      $ St.popn (St.size st - csHeigth) st

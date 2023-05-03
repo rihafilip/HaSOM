@@ -312,7 +312,7 @@ newBlock block = do
 
 newArray :: (CoreClassesEff r, GlobalsEff r, Member ExcT r, GCEff r) => Arr.VMArray FieldIx ObjIx -> Eff r VMObjectNat
 newArray arrayValue = do
-  MkCoreClasses{arrayClass} <- ask
+  MkCoreClasses {arrayClass} <- ask
   newObject arrayClass $ \clazz fields -> ArrayObject {clazz, fields, arrayValue}
 
 ---------------------------------------------------------------
@@ -338,7 +338,7 @@ sendMessage :: UniverseEff r => ObjIx -> LiteralIx -> GlobalIx -> Arr.VMArray Fi
 sendMessage self methodIx classIx args = do
   clazz <- getClass classIx
   errM <- callErrorMessage methodIx (name clazz)
-  method <- findMethod methodIx clazz >>= throwOnNothing errM
+  (methodHolder, method) <- findMethod methodIx clazz >>= throwOnNothing errM
 
   let (pCount, lCount) = case method of
         BytecodeMethod {parameterCount, localCount} -> (parameterCount, localCount)
@@ -351,20 +351,22 @@ sendMessage self methodIx classIx args = do
         | argsL < pCount = Arr.toList args ++ replicate (pCount - argsL) nilIx
         | otherwise = drop pCount $ Arr.toList args
 
-  let locals =  Arr.fromList (self : ( args' ++ replicate lCount nilIx ))
-
+  let locals = Arr.fromList (self : (args' ++ replicate lCount nilIx))
+  callStackHeight <- St.size <$> get @CallStackNat
   let cf =
         MethodCallFrame
-          { method,
+          { methodHolder,
+            method,
             pc = 0,
-            locals
+            locals,
+            callStackHeight
           }
   pushCallFrame cf
 
-findMethod :: (GlobalsEff r, Member ExcT r) => LiteralIx -> VMClassNat -> Eff r (Maybe VMMethodNat)
-findMethod litIx MkVMClass {methods, superclass} =
+findMethod :: (GlobalsEff r, Member ExcT r) => LiteralIx -> VMClassNat -> Eff r (Maybe (VMClassNat, VMMethodNat))
+findMethod litIx clazz@MkVMClass {methods, superclass} = do
   case (superclass, getMethod litIx methods) of
-    (_, Just m) -> pure $ Just m
+    (_, Just m) -> pure $ Just (clazz, m)
     (Just superIx, Nothing) -> do
       super <- getClass superIx
       findMethod litIx super

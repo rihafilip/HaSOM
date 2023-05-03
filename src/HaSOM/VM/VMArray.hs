@@ -16,6 +16,7 @@ module HaSOM.VM.VMArray
     -- * Sized function
     length,
     elemIndex,
+    append,
 
     -- * Transformation
     toList,
@@ -57,6 +58,7 @@ set idx element (MkVMArray xs)
   | i < 0 || i >= V.length xs = Nothing
   | otherwise = Just $ MkVMArray $ xs // [(i, element)]
   where i = getIx idx
+
 ----------------------------------------------------------
 
 length :: VMArray i a -> Int
@@ -64,6 +66,9 @@ length (MkVMArray xs) = V.length xs
 
 elemIndex :: (VMIx i, Eq a) => a -> VMArray i a -> Maybe i
 elemIndex el (MkVMArray xs) = ix <$> V.elemIndex el xs
+
+append :: VMArray i a -> VMArray i a -> VMArray i a
+append (MkVMArray xs) (MkVMArray ys) = MkVMArray $ (V.++) xs ys
 
 ----------------------------------------------------------
 -- | Transform array to list

@@ -4,8 +4,7 @@
 
 -- | VM Instructions implementation
 module HaSOM.VM.Universe.Instructions
-  ( doHalt,
-    doDup,
+  ( doDup,
     doPop,
     doPushLiteral,
     doPushLocal,
@@ -34,12 +33,6 @@ import Data.Text.Utility ((<+))
 
 ---------------------------------------------------------------
 -- Simple operations
-
-doHalt :: (ObjStackEff r, GCEff r, Member ExcT r) => Eff r Int
-doHalt =
-  popStack >>= getAsObject >>= \case
-    IntObject {intValue} -> pure intValue
-    _ -> throwT "Halt used with non-integer return value"
 
 doDup :: (ObjStackEff r, Member ExcT r) => Eff r ()
 doDup = topStack >>= pushStack
@@ -102,12 +95,12 @@ doCall li = do
   clazz <- clazz <$> getAsObject thisIx
   doCallUnified thisIx li clazz
 
-doSupercall :: UniverseEff r => LiteralIx -> Eff r ()
+doSupercall :: (Lifted IO r, UniverseEff r) => LiteralIx -> Eff r ()
 doSupercall li = do
+  holder <- methodHolder<$> getCurrentCallFrame
   thisIx <- popStack
-  clazz <- clazz <$> getAsObject thisIx
   superclass <-
-    throwOnNothing ("No superclass in class " <+ name clazz) (superclass clazz)
+    throwOnNothing ("No superclass in class " <+ name holder) (superclass holder)
       >>= getClass
 
   doCallUnified thisIx li superclass
@@ -115,19 +108,21 @@ doSupercall li = do
 doCallUnified :: UniverseEff r => ObjIx -> LiteralIx -> VMClassNat -> Eff r ()
 doCallUnified thisIx li clazz = do
   errM <- callErrorMessage li (name clazz)
-  method <- findMethod li clazz >>= throwOnNothing errM
+  (methodHolder, method) <- findMethod li clazz >>= throwOnNothing errM
 
   let (pCount, lCount) = case method of
         BytecodeMethod {parameterCount, localCount} -> (parameterCount, localCount)
         NativeMethod {parameterCount} -> (parameterCount, 0)
 
   localsL <- createLocals thisIx pCount lCount
-
+  callStackHeight <- St.size <$> get @CallStackNat
   let cf =
         MethodCallFrame
-          { method,
+          { methodHolder,
+            method,
             pc = 0,
-            locals = Arr.fromList localsL
+            locals = Arr.fromList localsL,
+            callStackHeight
           }
   pushCallFrame cf
 

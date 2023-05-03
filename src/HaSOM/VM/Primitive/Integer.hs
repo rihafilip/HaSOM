@@ -18,6 +18,7 @@ import Data.Text.Utility (showT)
 import Text.Read (readMaybe)
 import qualified Data.Text as T
 import Control.Monad ((>=>))
+import Data.Functor ((<&>))
 
 primitives :: PrimitiveContainer
 primitives =
@@ -149,9 +150,11 @@ sqrtInt = pureNativeFun @N0 $ \self Nil -> do
 equalInt :: NativeFun
 equalInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
   a <- castInt self
-  b <- castInt other
+  res <- getAsObject other <&> \case
+    IntObject{intValue} -> intValue == a
+    _ -> False
 
-  if a == b
+  if res
     then newTrue >>= addToGC
     else newFalse >>= addToGC
 

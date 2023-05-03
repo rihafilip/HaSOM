@@ -7,6 +7,7 @@ import Control.Monad ((>=>))
 import Data.Functor ((<&>))
 import Data.PrettyPrint (runPrettyPrint)
 import Data.Text (Text)
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility (showT, (<+))
 import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple)
@@ -15,7 +16,6 @@ import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
-import qualified Data.Text as T
 
 -- | Run the interpreter
 interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
@@ -29,7 +29,7 @@ interpret = do
           ("Index " <+ showT (pc cf) <+ " fell out of code block")
           (getInstruction (pc cf) body)
       advancePC
-      executeInstruction ins signature
+      executeInstruction ins
     NativeMethod {signature, nativeBody} -> do
       runNativeFun nativeBody
       ask >>= \case
@@ -40,14 +40,9 @@ interpret = do
 
   maybe interpret pure r
 
-executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r) => Bytecode -> Text -> Eff r (Maybe Int)
-executeInstruction HALT _ = Just <$> doHalt
-executeInstruction bc signature = do
-  ask >>= \case
-    NoTrace -> pure ()
-    DoTrace ->
-      runPrettyPrint (disassembleBytecodeInsSimple bc)
-        >>= lift . TIO.putStr . (T.justifyLeft 30 ' ' signature <+)
+executeInstruction :: (Lifted IO r, UniverseEff r) => Bytecode -> Eff r (Maybe Int)
+executeInstruction HALT = pure $ Just 0
+executeInstruction bc = do
   case bc of
     DUP -> doDup
     POP -> doPop
@@ -66,13 +61,15 @@ executeInstruction bc signature = do
 
 -- | Bootstrap the System>>#initialize: method with command line arguments
 bootstrap :: UniverseEff r => Text -> [Text] -> Eff r ()
-bootstrap clazz args = do
-  argsIdxs <- mapM (newString >=> addToGC) (clazz : args)
+bootstrap mainClass args = do
+  argsIdxs <- mapM (newString >=> addToGC) (mainClass : args)
   arrIdx <- newArray (Arr.fromList argsIdxs) >>= addToGC
   systemIdx <-
     internGlobalE "system" >>= getGlobalE <&> \case
       ClassGlobal MkVMClass {asObject} -> asObject
       ObjectGlobal oi -> oi
+
+  methodHolder <- clazz <$> getAsObject systemIdx
 
   pushStack arrIdx
   pushStack systemIdx
@@ -82,9 +79,16 @@ bootstrap clazz args = do
 
   let bootstrapM =
         BytecodeMethod
-          { signature = "System>>bootstrap",
+          { signature = "System>>#bootstrap",
             body,
             parameterCount = 0,
             localCount = 0
           }
-  pushCallFrame $ MethodCallFrame {method = bootstrapM, pc = 0, locals = Arr.fromList []}
+  pushCallFrame $
+    MethodCallFrame
+      { methodHolder,
+        method = bootstrapM,
+        pc = 0,
+        locals = Arr.fromList [],
+        callStackHeight = 0
+      }

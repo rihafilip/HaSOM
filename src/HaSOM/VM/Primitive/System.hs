@@ -103,7 +103,7 @@ exit = pureNativeFun @N1 $ \_ (iIx :+: Nil) -> do
 
 printIOStr :: (Text -> IO ()) -> NativeFun
 printIOStr printingF = pureNativeFun @N1 $ \self (strIx :+: Nil) -> do
-  str <- castString strIx
+  str <- castStringOrSymbol strIx
   lift $ printingF str
   pure self
 
