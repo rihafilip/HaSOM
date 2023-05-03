@@ -29,6 +29,7 @@ import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitWith)
 import System.FilePath (takeExtension)
 import System.IO (stderr)
+import Control.Monad (when)
 
 type ExecEff r = (Lifted IO r, Member (Exc Int) r)
 
@@ -91,19 +92,27 @@ doExecute clazz args trace MkCompilationResult {..} =
     let os = (emptyStack :: ObjStack)
     let gc = (GC.fromList nilObj heap :: GCNat)
 
-    -- (((((res, fGC), fLits), fCallSt), fGlobs), fStack) <-
-    (((((res, _), _), _), _), _) <-
+    (((res, fGC), fCs), fOs) <-
       runLift $
         runState os $
-          runState globals $
+          evalState globals $
             runReader coreClasses $
               runReader (traceFromBool trace) $
                 runState cs $
-                  runState literals $
+                  evalState literals $
                     runState gc $
                       runError @Text
                         (bootstrap clazz args >> interpret)
 
     case res of
-      Left txt -> TIO.hPutStrLn stderr ("Runtime error: " <+ txt) >> exitFailure
+      Left txt -> do
+        TIO.hPutStrLn stderr ("Runtime error: " <+ txt)
+        when trace $ do
+          putStrLn ""
+          putStrLn "Call stack trace:"
+          disassembleCallStack fGC fCs >>= TIO.putStrLn
+          putStrLn ""
+          putStrLn "Stack trace:"
+          TIO.putStrLn (disassembleStack fGC fOs)
+        exitFailure
       Right n -> exitWith (ExitFailure n)

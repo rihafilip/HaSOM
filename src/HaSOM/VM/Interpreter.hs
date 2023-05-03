@@ -5,8 +5,11 @@ module HaSOM.VM.Interpreter (interpret, bootstrap) where
 
 import Control.Monad ((>=>))
 import Data.Functor ((<&>))
+import Data.PrettyPrint (runPrettyPrint)
 import Data.Text (Text)
+import qualified Data.Text.IO as TIO
 import Data.Text.Utility (showT, (<+))
+import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
@@ -20,21 +23,26 @@ interpret = do
 
   r <- case method cf of
     BytecodeMethod {body} -> do
-      ins <- throwOnNothing
-        ("Index " <+ showT (pc cf) <+ " fell out of code block")
-        (getInstruction (pc cf) body)
+      ins <-
+        throwOnNothing
+          ("Index " <+ showT (pc cf) <+ " fell out of code block")
+          (getInstruction (pc cf) body)
       advancePC
       executeInstruction ins
-    NativeMethod {nativeBody} -> Nothing <$ runNativeFun nativeBody
+    NativeMethod {nativeBody} -> do
+      runNativeFun nativeBody
+      pure Nothing
 
   maybe interpret pure r
 
-executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r)  => Bytecode -> Eff r (Maybe Int)
+executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r) => Bytecode -> Eff r (Maybe Int)
 executeInstruction HALT = Just <$> doHalt
 executeInstruction bc = do
   ask >>= \case
-    DoTrace -> lift $ putStrLn ("Trace: " ++ show bc)
     NoTrace -> pure ()
+    DoTrace ->
+      runPrettyPrint (disassembleBytecodeInsSimple bc)
+        >>= lift . TIO.putStr . ("Trace: " <+)
   case bc of
     DUP -> doDup
     POP -> doPop
@@ -67,5 +75,11 @@ bootstrap clazz args = do
   methodIdx <- internLiteralE (SymbolLiteral "initialize:")
   let body = code [CALL methodIdx, HALT]
 
-  let bootstrapM = BytecodeMethod {body, parameterCount = 0, localCount = 0}
+  let bootstrapM =
+        BytecodeMethod
+          { signature = "System>>bootstrap",
+            body,
+            parameterCount = 0,
+            localCount = 0
+          }
   pushCallFrame $ MethodCallFrame {method = bootstrapM, pc = 0, locals = Arr.fromList []}

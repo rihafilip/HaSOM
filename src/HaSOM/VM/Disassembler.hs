@@ -1,23 +1,35 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module HaSOM.VM.Disassembler
   ( disassembleLiterals,
     disassembleGlobals,
     disassembleClassSimple,
+    disassembleMethodSimple,
+    disassembleBytecodeSimple,
+    disassembleBytecodeInsSimple,
+    stackTrace,
+    disassembleCallStack,
+    disassembleStack,
   )
 where
 
 import Combinator ((.>))
-import Control.Eff (Eff)
+import Control.Eff (Eff, Lifted, run, runLift)
+import Control.Eff.IO.Utility (lreadIORef)
 import Control.Eff.State.Strict (evalState, get)
+import Control.Monad (forM_)
 import Data.List (sortOn)
 import Data.Maybe (fromMaybe)
 import Data.PrettyPrint
+import qualified Data.Stack as St
 import Data.Text (Text, justifyRight)
 import Data.Text.Utility
+import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
+import qualified HaSOM.VM.VMArray as Arr
 
 formatIdx :: VMIx i => i -> Text
 formatIdx = justifyRight 4 '0' . showT . getIx
@@ -214,3 +226,61 @@ disassembleBytecodeInsSimple bc =
     SET_FIELD fi -> "SET_FIELD" <-> formatIdx fi
     RETURN -> "RETURN"
     NONLOCAL_RETURN -> "NONLOCAL_RETURN"
+
+stackTrace :: (Lifted IO r) => CallStackNat -> Eff r Text
+stackTrace = runPrettyPrint . printStack
+  where
+    printStack (St.pop -> Just (st, it)) = do
+      printStack st
+      getCallFrame it >>= printFrame
+    printStack (St.pop -> Nothing) = pure ()
+    printFrame frame = do
+      addLine $ signature (method frame) <+ "@" <+ showT (pc frame)
+
+disassembleCallStack :: GCNat -> CallStackNat -> IO Text
+disassembleCallStack gc cs = runLift $ runPrettyPrint $ printStack cs
+  where
+    printStack (St.pop -> Just (st, it)) = do
+      printStack st
+      getCallFrame it >>= printFrame
+    printStack (St.pop -> Nothing) = pure ()
+
+    printFrame frame = do
+      addLine $ signature (method frame) <+ "@" <+ showT (pc frame)
+      addLine "Fields:"
+      indented $
+        forM_ (locals frame) $
+          maybe (addLine "??") printObject . (`GC.getAt` gc)
+      case frame of
+        BlockCallFrame {capturedFrame} -> do
+          lreadIORef capturedFrame >>= indented . printFrame
+        _ -> pure ()
+
+disassembleStack :: GCNat -> ObjStack -> Text
+disassembleStack gc = run . runPrettyPrint . printStack
+  where
+    printStack (St.pop -> Nothing) = pure ()
+    printStack (St.pop -> Just (st, idx)) = do
+      maybe (addLine "??") printObject (GC.getAt idx gc)
+      printStack st
+
+printObject :: PrettyPrintEff r => VMObjectNat -> Eff r ()
+printObject obj = do
+  let MkVMClass {name} = clazz obj
+  addLine ("Instance of " <+ name)
+  "Fields" .: showT (fields obj)
+  case obj of
+    ClassObject {classOf} -> "Class of" .: showT classOf
+    IntObject {intValue} -> "Value" .: showT intValue
+    DoubleObject {doubleValue} -> "Value" .: showT doubleValue
+    StringObject {stringValue} -> "Value" .: quote stringValue
+    SymbolObject {symbolValue} -> "Value" .: quote symbolValue
+    ArrayObject {arrayValue} -> "Value" .: showT arrayValue
+    MethodObject {methodValue, holder} -> do
+      "Method" .: showT methodValue
+      "Holder" .: showT holder
+    PrimitiveObject {methodValue, holder} -> do
+      "Method" .: showT methodValue
+      "Holder" .: showT holder
+    _ -> pure ()
+  addLine ""
