@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- | VM Array data type
 module HaSOM.VM.VMArray
   ( -- * Data type representation
@@ -11,15 +13,16 @@ module HaSOM.VM.VMArray
     get,
     set,
 
-    -- * length function
+    -- * Sized function
     length,
+    elemIndex,
 
     -- * Transformation
     toList,
   )
 where
 
-import HaSOM.VM.Object.Ix (VMIx (getIx))
+import HaSOM.VM.Object.Ix (VMIx (..))
 import Prelude hiding (length)
 import Data.Vector (Vector, (!?), (//))
 import qualified Data.Vector as V
@@ -27,12 +30,10 @@ import qualified Data.Vector as V
 -- | Type definition of the array,
 -- where i is the index type and a is the element type
 newtype VMArray i a = MkVMArray (Vector a)
+  deriving newtype (Functor, Applicative, Monad, Foldable, Eq, Show)
 
-instance Show a => Show (VMArray i a) where
-  show (MkVMArray xs) = show xs
-
-instance Eq a => Eq (VMArray i a) where
-  (MkVMArray xs) == (MkVMArray ys) = xs == ys
+instance Traversable (VMArray i) where
+  traverse f (MkVMArray xs) = MkVMArray <$> traverse f xs
 
 ----------------------------------------------------------
 
@@ -60,6 +61,9 @@ set idx element (MkVMArray xs)
 
 length :: VMArray i a -> Int
 length (MkVMArray xs) = V.length xs
+
+elemIndex :: (VMIx i, Eq a) => a -> VMArray i a -> Maybe i
+elemIndex el (MkVMArray xs) = ix <$> V.elemIndex el xs
 
 ----------------------------------------------------------
 -- | Transform array to list
