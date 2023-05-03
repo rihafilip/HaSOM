@@ -1,0 +1,29 @@
+CustomTestHarness = TestHarness (
+    tests = ( "Now ordered by alphabetical order to improve maintainability"
+        ^ EmptyTest,
+          SpecialSelectorsTest,
+          "ArrayTest,"
+          "BlockTest,"
+          BooleanTest,
+          ClassLoadingTest,
+          ClassStructureTest,
+          ClosureTest,
+          "CoercionTest," "Double"
+          CompilerReturnTest,
+          DictionaryTest,
+          "DoesNotUnderstandTest,"
+          "DoubleTest,"
+          "GlobalTest,"
+          HashTest,
+          "IntegerTest," "Double"
+          PreliminaryTest,
+          "ReflectionTest,"
+          SelfBlockTest,
+          SetTest,
+          StringTest,
+          SuperTest,
+          SymbolTest,
+          "SystemTest,"
+          VectorTest
+    )
+)
