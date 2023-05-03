@@ -67,7 +67,7 @@ tokens :-
   $alpha [$alpha $digit _]* ":"    { tokT Keyword decode }
   ($alpha [$alpha $digit _]* ":")+ { tokT KeywordSequence decode }
 
-  "'" ( "\t" | "\b" | "\n" | "\r" | "\f" | "\0" | "\'" | "\\" | ~[\' \\])* "'" { tokT STString decode }
+  "'" ( "\t" | "\b" | "\n" | "\r" | "\f" | "\0" | "\'" | "\\" | \n | ~[\' \\])* "'" { tokT STString unstring }
 
 {
 data PosToken = PosToken AlexPosn Token

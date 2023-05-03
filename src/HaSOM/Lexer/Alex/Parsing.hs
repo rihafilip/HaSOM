@@ -1,11 +1,13 @@
 -- | Parsing helpers for Alex
-module HaSOM.Lexer.Alex.Parsing(decode, parseInt, parseDouble) where
+module HaSOM.Lexer.Alex.Parsing (decode, unstring, parseInt, parseDouble) where
 
+import Data.ByteString.Internal (c2w, w2c)
 import Data.ByteString.Lazy (ByteString, toStrict)
 import qualified Data.ByteString.Lazy as B
-import Data.ByteString.Internal (w2c, c2w)
 import Data.Char (digitToInt)
+import Data.Maybe
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8')
 import Data.Word (Word8)
 import GHC.Float (int2Double)
@@ -13,6 +15,24 @@ import GHC.Float (int2Double)
 -- | Turn Bytestring to Text
 decode :: ByteString -> Text
 decode = either (error . show) id . decodeUtf8' . toStrict
+
+unstring :: ByteString -> Text
+unstring = flip (foldl appl) replacements . unquote . decode
+  where
+    unquote s =
+      let s' = fromMaybe s $ T.stripPrefix "'" s
+       in fromMaybe s' $ T.stripSuffix "'" s'
+    appl source (find, replace) = T.replace find replace source
+    replacements =
+      [ ("\\t", "\t"),
+        ("\\b", "\b"),
+        ("\\n", "\n"),
+        ("\\r", "\r"),
+        ("\\f", "\f"),
+        ("\\0", "\0"),
+        ("\\\'", "\'"),
+        ("\\\\", "\\")
+      ]
 
 -- | Parse Bytestring to Int
 parseInt :: ByteString -> Int
