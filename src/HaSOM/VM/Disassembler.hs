@@ -16,7 +16,7 @@ module HaSOM.VM.Disassembler
 where
 
 import Combinator ((.>))
-import Control.Eff (Eff, Lifted, run, runLift)
+import Control.Eff (Eff, Lifted, runLift)
 import Control.Eff.IO.Utility (lreadIORef)
 import Control.Eff.State.Strict (evalState, get)
 import Control.Monad (forM_)
@@ -231,8 +231,8 @@ stackTrace :: (Lifted IO r) => CallStackNat -> Eff r Text
 stackTrace = runPrettyPrint . printStack
   where
     printStack (St.pop -> Just (st, it)) = do
-      printStack st
       getCallFrame it >>= printFrame
+      printStack st
     printStack (St.pop -> Nothing) = pure ()
     printFrame frame = do
       addLine $ signature (method frame) <+ "@" <+ showT (pc frame)
@@ -241,30 +241,34 @@ disassembleCallStack :: GCNat -> CallStackNat -> IO Text
 disassembleCallStack gc cs = runLift $ runPrettyPrint $ printStack cs
   where
     printStack (St.pop -> Just (st, it)) = do
-      printStack st
       getCallFrame it >>= printFrame
+      printStack st
+      addLine ""
     printStack (St.pop -> Nothing) = pure ()
 
     printFrame frame = do
       addLine $ signature (method frame) <+ "@" <+ showT (pc frame)
-      addLine "Fields:"
-      indented $
-        forM_ (locals frame) $
-          maybe (addLine "??") printObject . (`GC.getAt` gc)
-      case frame of
-        BlockCallFrame {capturedFrame} -> do
-          lreadIORef capturedFrame >>= indented . printFrame
-        _ -> pure ()
+      indented $ do
+        "Holder" .: name (methodHolder frame)
+        addLine "Fields:"
+        indented $
+          forM_ (locals frame) $
+            maybe (addLine "??") printObject . (`GC.getAt` gc)
+        case frame of
+          BlockCallFrame {capturedFrame} -> do
+            addLine "Captured frame:"
+            lreadIORef capturedFrame >>= indented . printFrame
+          _ -> pure ()
 
-disassembleStack :: GCNat -> ObjStack -> Text
-disassembleStack gc = run . runPrettyPrint . printStack
+disassembleStack :: Lifted IO r => GCNat -> ObjStack -> Eff r Text
+disassembleStack gc = runPrettyPrint . indented . printStack
   where
     printStack (St.pop -> Nothing) = pure ()
     printStack (St.pop -> Just (st, idx)) = do
       maybe (addLine "??") printObject (GC.getAt idx gc)
       printStack st
 
-printObject :: PrettyPrintEff r => VMObjectNat -> Eff r ()
+printObject :: (Lifted IO r, PrettyPrintEff r) => VMObjectNat -> Eff r ()
 printObject obj = do
   let MkVMClass {name} = clazz obj
   addLine ("Instance of " <+ name)
@@ -282,5 +286,8 @@ printObject obj = do
     PrimitiveObject {methodValue, holder} -> do
       "Method" .: showT methodValue
       "Holder" .: showT holder
+    BlockObject {blockCapturedFrame} -> do
+      cr <- signature . method <$> lreadIORef blockCapturedFrame
+      "Created at" .: cr
     _ -> pure ()
   addLine ""
