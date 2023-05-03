@@ -9,14 +9,13 @@ import Data.PrettyPrint (runPrettyPrint)
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility (showT, (<+))
-import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple, disassembleCallStack)
+import HaSOM.VM.Disassembler (disassembleBytecodeInsSimple)
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
-import GHC.IO.Exception (ExitCode(..))
-import System.Exit (exitWith)
+import qualified Data.Text as T
 
 -- | Run the interpreter
 interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
@@ -24,36 +23,31 @@ interpret = do
   cf <- getCurrentCallFrame
 
   r <- case method cf of
-    BytecodeMethod {body} -> do
+    BytecodeMethod {signature, body} -> do
       ins <-
         throwOnNothing
           ("Index " <+ showT (pc cf) <+ " fell out of code block")
           (getInstruction (pc cf) body)
       advancePC
-      executeInstruction ins
+      executeInstruction ins signature
     NativeMethod {signature, nativeBody} -> do
       runNativeFun nativeBody
       ask >>= \case
         NoTrace -> pure ()
         DoTrace -> do
           lift $ TIO.putStrLn ("Entering: " <+ signature)
-          gc <- get
-          cs <- get
-          lift $ disassembleCallStack gc cs >>= TIO.putStr
-      if signature == "Block1>>value"
-        then lift $ exitWith (ExitFailure 100)
-        else pure Nothing
+      pure Nothing
 
   maybe interpret pure r
 
-executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r) => Bytecode -> Eff r (Maybe Int)
-executeInstruction HALT = Just <$> doHalt
-executeInstruction bc = do
+executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r) => Bytecode -> Text -> Eff r (Maybe Int)
+executeInstruction HALT _ = Just <$> doHalt
+executeInstruction bc signature = do
   ask >>= \case
     NoTrace -> pure ()
     DoTrace ->
       runPrettyPrint (disassembleBytecodeInsSimple bc)
-        >>= lift . TIO.putStr . ("Trace: " <+)
+        >>= lift . TIO.putStr . (T.justifyLeft 30 ' ' signature <+)
   case bc of
     DUP -> doDup
     POP -> doPop
