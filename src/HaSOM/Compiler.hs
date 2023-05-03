@@ -278,7 +278,7 @@ compileAlgebra = MkAlgebra {..}
                 NativeMethod
                   { nativeBody,
                     parameterCount = length params,
-                    signature = className <+ ">>" <+ mName
+                    signature = className <+ ">>#" <+ mName
                   }
 
       -- Literal for this method
@@ -305,7 +305,7 @@ compileAlgebra = MkAlgebra {..}
               { body,
                 parameterCount = length params,
                 localCount,
-                signature = className <+ ">>" <+ mName
+                signature = className <+ ">>#" <+ mName
               }
           )
 

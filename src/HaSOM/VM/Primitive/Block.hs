@@ -24,7 +24,7 @@ primitives =
 
 instanceMs :: [(Text, NativeFun)]
 instanceMs =
-  [ ("value", value "Block>>value"),
+  [ ("value", value "Block>>#value"),
     ("restart", restart)
   ]
 
