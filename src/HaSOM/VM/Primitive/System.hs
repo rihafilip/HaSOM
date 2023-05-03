@@ -12,8 +12,6 @@ import Combinator ((.>))
 import Data.Functor ((<&>))
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
-import System.Exit (exitWith)
-import GHC.IO.Exception (ExitCode(..))
 import System.IO (stderr)
 
 primitives :: PrimitiveContainer
@@ -97,9 +95,9 @@ loadFile = pureNativeFun @N1 $ \_ (fp :+: Nil) -> do
   newString cont >>= addToGC
 
 exit :: NativeFun
-exit = pureNativeFun @N1 $ \_ (iIx :+: Nil) -> do
-  i <- castInt iIx
-  lift $ exitWith (ExitFailure i)
+exit = mkNativeFun $ do
+  i <- getLocal 0 1 >>= castInt
+  pure (Just i)
 
 printIOStr :: (Text -> IO ()) -> NativeFun
 printIOStr printingF = pureNativeFun @N1 $ \self (strIx :+: Nil) -> do

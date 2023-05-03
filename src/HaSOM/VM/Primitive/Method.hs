@@ -70,3 +70,4 @@ invokeOnWith = mkNativeFun $ do
   (argsArr, _) <- castArray args
 
   sendMessage primary methodValue holderIx argsArr
+  pure Nothing

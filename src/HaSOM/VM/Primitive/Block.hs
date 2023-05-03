@@ -81,6 +81,7 @@ value signature = mkNativeFun $ do
 
   -- Push the new call frame
   pushCallFrame cf
+  pure Nothing
 
 restart :: NativeFun
 restart = mkNativeFun $ do
@@ -95,3 +96,4 @@ restart = mkNativeFun $ do
     throwOnNothing
       "Reseting too small of a stack in Block>>restart"
       $ St.popn (St.size st - csHeigth) st
+  pure Nothing

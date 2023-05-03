@@ -167,6 +167,7 @@ nativeFun f = mkNativeFun $ do
   args <- getArgs @n 1
   f self args
   void popCallFrame
+  pure Nothing
 
 -- | Create a function with giving self, arguments and returning result on stack
 pureNativeFun :: forall n. (GetArgs n) => (forall r. RestrictedNativeFun r => ObjIx -> ArgList n ObjIx -> Eff r ObjIx) -> NativeFun
@@ -175,6 +176,7 @@ pureNativeFun f = mkNativeFun $ do
   args <- getArgs @n 1
   f self args >>= pushStack
   void popCallFrame
+  pure Nothing
 
 nativeNotImplemented :: NativeFun
 nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do

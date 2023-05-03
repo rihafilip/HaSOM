@@ -134,12 +134,12 @@ type UniverseEff r =
 
 -- | Native function polymorphic wrapper,
 -- needed for cyclical dependency between Universe and NativeFun
-newtype NativeFun = MkNativeFun (forall r. (UniverseEff r, Lifted IO r) => Eff r ())
+newtype NativeFun = MkNativeFun (forall r. (UniverseEff r, Lifted IO r) => Eff r (Maybe Int))
 
 -- | Create a native function
-mkNativeFun :: (forall r. (UniverseEff r, Lifted IO r) => Eff r ()) -> NativeFun
+mkNativeFun :: (forall r. (UniverseEff r, Lifted IO r) => Eff r (Maybe Int)) -> NativeFun
 mkNativeFun = MkNativeFun
 
 -- | Run a native function
-runNativeFun :: (UniverseEff r, Lifted IO r) => NativeFun -> Eff r ()
+runNativeFun :: (UniverseEff r, Lifted IO r) => NativeFun -> Eff r (Maybe Int)
 runNativeFun (MkNativeFun f) = f

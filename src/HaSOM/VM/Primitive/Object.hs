@@ -98,12 +98,13 @@ performCommon ::
   ObjIx ->
   Arr.VMArray FieldIx ObjIx ->
   GlobalIx ->
-  Eff r ()
+  Eff r (Maybe Int)
 performCommon self aSymbol args cls = do
   sym <- castSymbol aSymbol
   mIx <- internLiteralE (SymbolLiteral sym)
   _ <- popCallFrame
   sendMessage self mIx cls args
+  pure Nothing
 
 perform :: NativeFun
 perform = mkNativeFun $ do

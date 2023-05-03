@@ -38,7 +38,6 @@ interpret = do
       whenTrace $ do
         lift $ TIO.putStrLn (T.justifyLeft 30 ' ' signature <+ "PRIMITIVE")
       runNativeFun nativeBody
-      pure Nothing
 
   maybe interpret pure r
 
