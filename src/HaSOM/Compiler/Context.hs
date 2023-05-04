@@ -86,7 +86,7 @@ data BlockCtx
 newtype MockGC = MkMockGC Int
 
 evalMockGC :: Eff (State MockGC : r) a -> Eff r a
-evalMockGC = evalState (MkMockGC 1)
+evalMockGC = evalState (MkMockGC 0)
 
 getIdx :: Member (State MockGC) r => Eff r ObjIx
 getIdx = modifyYield $ \(MkMockGC i) -> (MkMockGC (i + 1), ix i)

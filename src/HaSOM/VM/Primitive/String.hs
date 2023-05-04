@@ -90,6 +90,7 @@ equal = pureNativeFun @N1 $ \self (other :+: Nil) -> do
 
   let res = case (selfObj, otherObj) of
         (StringObject {stringValue = s1}, StringObject {stringValue = s2}) -> s1 == s2
+        (StringObject {stringValue = s1}, SymbolObject {symbolValue = s2}) -> s1 == s2
         (SymbolObject {symbolValue = s1}, SymbolObject {symbolValue = s2}) -> s1 == s2
         _ -> False
 

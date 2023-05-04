@@ -355,7 +355,8 @@ sendMessage self methodIx classIx args = do
   let argsL = Arr.length args
   let args'
         | argsL < pCount = Arr.toList args ++ replicate (pCount - argsL) nilIx
-        | otherwise = drop pCount $ Arr.toList args
+        | otherwise = take pCount $ Arr.toList args
+
 
   let locals = Arr.fromList (self : (args' ++ replicate lCount nilIx))
   callStackHeight <- St.size <$> get @CallStackNat
