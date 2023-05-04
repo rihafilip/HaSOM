@@ -18,12 +18,6 @@ instance (Arbitrary a) => Arbitrary (Stack a) where
 emptyStack' :: Stack Int
 emptyStack' = emptyStack
 
-exampleList :: [Int]
-exampleList = [0, 1, 2, 3, 4, 5, 6]
-
-exampleStack :: Stack Int
-exampleStack = foldl (flip push) emptyStack exampleList
-
 ---------------------------------------------------------
 
 spec :: Spec
