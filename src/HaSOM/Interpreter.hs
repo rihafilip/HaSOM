@@ -17,6 +17,13 @@ import HaSOM.VM.Universe.Instructions
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
 
+-- | GC gets run after each context switch
+mbyRunGC :: (Lifted IO r, UniverseEff r) => Eff r()
+mbyRunGC =
+  get >>= \case
+    RunGC -> runGC
+    NoGC -> pure ()
+
 -- | Run the interpreter
 interpret :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r Int
 interpret = do
@@ -40,7 +47,9 @@ interpret = do
         pTrace
 
       advancePC
-      executeInstruction ins
+      res <- executeInstruction ins
+      mbyRunGC
+      pure res
     NativeMethod {signature, nativeBody} -> do
       whenTrace $ do
         lift $ TIO.putStrLn (T.justifyLeft 30 ' ' signature <+ "PRIMITIVE")
@@ -62,8 +71,8 @@ executeInstruction bc = do
     SET_LOCAL env li -> doSetLocal env li
     SET_FIELD fi -> doSetField fi
     SET_GLOBAL gi -> doSetGlobal gi
-    CALL li -> doCall li
-    SUPER_CALL li -> doSupercall li
+    CALL li -> doCall li >> mbyRunGC
+    SUPER_CALL li -> doSupercall li >> mbyRunGC
     RETURN -> doReturn
     NONLOCAL_RETURN -> doNonlocalReturn
   pure Nothing

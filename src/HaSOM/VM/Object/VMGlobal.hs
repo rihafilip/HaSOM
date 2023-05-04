@@ -15,6 +15,7 @@ module HaSOM.VM.Object.VMGlobal
 
     -- * Disassembly
     globalsToList,
+    allIndices,
   )
 where
 
@@ -23,7 +24,7 @@ import qualified Data.LookupMap as LM
 import Data.Text (Text)
 import Data.Tuple (swap)
 import HaSOM.VM.Object.Ix (GlobalIx, ObjIx)
-import HaSOM.VM.Object.VMClass (VMClass)
+import HaSOM.VM.Object.VMClass (VMClass(MkVMClass, asObject))
 
 -- | Representation of global object,
 -- parametrized by primitive function type
@@ -65,3 +66,13 @@ globalsToList :: VMGlobals f -> [(GlobalIx, Text, Maybe (VMGlobal f))]
 globalsToList MkVMGlobals {..} = map f $ LM.toList interner
   where
     f (name, idx) = (idx, name, Map.lookup idx globals)
+
+-- | Collect all indices from globals,
+-- either indices of global objects
+-- or index of class as object
+allIndices :: VMGlobals f -> [ObjIx]
+allIndices = map trans . Map.elems . globals
+  where
+    trans (ClassGlobal MkVMClass {asObject}) = asObject
+    trans (ObjectGlobal oi) = oi
+

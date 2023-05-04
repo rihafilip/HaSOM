@@ -11,6 +11,7 @@ module HaSOM.VM.Object.VMObject
     newFields,
     setField,
     getField,
+    mapFields,
   )
 where
 
@@ -44,6 +45,9 @@ setField fi oi obj =
 -- | Get field object in object
 getField :: FieldIx -> VMObject f -> Maybe ObjIx
 getField idx = Arr.get idx . runFields . fields
+
+mapFields :: (ObjIx -> a) -> Fields -> Arr.VMArray FieldIx a
+mapFields f = fmap f . runFields
 
 -------------------------------------------------------
 

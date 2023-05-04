@@ -9,6 +9,9 @@ module HaSOM.VM.Universe
     traceFromBool,
     whenTrace,
 
+    -- * Run GC flag
+    GCFlag(..),
+
     -- * Native function specialization of parametrized types
     CallFrameNat,
     CallStackItemNat,
@@ -64,6 +67,13 @@ whenTrace f = ask >>= \case
 
 -----------------------------------
 
+-- | Flag marking if GC should be ran.
+-- It cannot be run immidietly, because some object
+-- might not be reachable to mark yet
+data GCFlag = RunGC | NoGC
+
+-----------------------------------
+
 -- Call stack
 type CallFrameNat = CallFrame NativeFun
 
@@ -111,7 +121,7 @@ type CallStackEff r = Member (State CallStackNat) r
 type LiteralEff r = Member (State VMLiterals) r
 
 -- | VM GC definition effect
-type GCEff r = Member (State GCNat) r
+type GCEff r = [State GCNat, State GCFlag] <:: r
 
 -- | VM Trace effect
 type TraceEff r = Member (Reader Trace) r
@@ -126,6 +136,7 @@ type UniverseEff r =
     State CallStackNat,
     State VMLiterals,
     State GCNat,
+    State GCFlag,
     ExcT
   ]
     <:: r

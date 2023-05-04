@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -40,6 +41,7 @@ module HaSOM.VM.Universe.Operations
     getAsObject,
     setObject,
     getNil,
+    runGC,
 
     -- ** Locals creation
     createLocals,
@@ -80,6 +82,8 @@ import Control.Eff.IO.Utility
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
 import Control.Eff.Utility
+import Control.Monad (unless)
+import qualified Data.HashSet as Set
 import qualified Data.Stack as St
 import Data.Text (Text)
 import Data.Text.Utility
@@ -87,6 +91,7 @@ import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import qualified HaSOM.VM.VMArray as Arr
+import GHC.Base (when)
 
 ---------------------------------------------------------------
 -- Helper functions
@@ -239,6 +244,7 @@ setFieldE fi obj = do
 addToGC :: GCEff r => VMObjectNat -> Eff r ObjIx
 addToGC obj = do
   gc <- get @GCNat
+  when (GC.isFull gc) $ put RunGC
   let (gc', newIdx) = GC.new gc
   let gc'' = GC.setAt newIdx obj gc'
   put gc''
@@ -371,3 +377,41 @@ findMethod litIx clazz@MkVMClass {methods, superclass} = do
       super <- getClass superIx
       findMethod litIx super
     (Nothing, Nothing) -> pure Nothing
+
+---------------------------------------------------------------
+
+runGC :: (Lifted IO r, UniverseEff r) => Eff r ()
+runGC = do
+  marked <- mark
+  modify @GCNat $ GC.collect marked
+  put NoGC
+
+mark :: (Lifted IO r, UniverseEff r) => Eff r (Set.HashSet ObjIx)
+mark = execState set $ do
+  get @CallStackNat
+    >>= mapM_ markCallItem . St.toList
+  get @VMGlobalsNat
+    >>= mapM_ markObject . allIndices
+  get @ObjStack
+    >>= mapM_ markObject . St.toList
+  where
+    set :: Set.HashSet ObjIx
+    set = Set.empty
+
+    markCallItem (PureCallFrame cf) = markCallFrame cf
+    markCallItem (ReferenceCallFrame cf) = lreadIORef cf >>= markCallFrame
+
+    markCallFrame = mapM_ markObject . locals
+
+    markObject idx = do
+      hm <- get @(Set.HashSet ObjIx)
+
+      unless (Set.member idx hm) $
+        getAsObject idx >>= \obj -> do
+          put $ Set.insert idx hm
+          case obj of
+            ArrayObject {arrayValue} -> mapM_ markObject arrayValue
+            BlockObject {blockCapturedFrame} ->
+              lreadIORef blockCapturedFrame >>= markCallFrame
+            _ -> pure ()
+          sequence_ $ mapFields markObject $ fields obj

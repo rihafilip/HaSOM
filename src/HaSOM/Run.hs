@@ -100,8 +100,9 @@ doExecute clazz args trace MkCompilationResult {..} =
                 runState cs $
                   evalState literals $
                     runState gc $
-                      runError @Text
-                        (bootstrap clazz args >> interpret)
+                      evalState NoGC $
+                        runError @Text
+                          (bootstrap clazz args >> interpret)
 
     let doTrace =
           if trace
