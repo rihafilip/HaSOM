@@ -3,7 +3,7 @@ CustomTestHarness = TestHarness (
         ^ EmptyTest,
           SpecialSelectorsTest,
           "ArrayTest,"
-          "BlockTest,"
+          CustomBlockTest,
           BooleanTest,
           ClassLoadingTest,
           ClassStructureTest,
@@ -11,7 +11,6 @@ CustomTestHarness = TestHarness (
           "CoercionTest," "Double"
           CompilerReturnTest,
           DictionaryTest,
-          "DoesNotUnderstandTest,"
           "DoubleTest,"
           "GlobalTest,"
           HashTest,
