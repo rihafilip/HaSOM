@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- | Type definitions and helpers for primitive functions
 module HaSOM.VM.Primitive.Type
@@ -34,10 +35,14 @@ module HaSOM.VM.Primitive.Type
     -- ** Cast an object to type
     castInt,
     castDouble,
+    castPromoteDouble,
     castString,
     castSymbol,
     castStringOrSymbol,
     castArray,
+
+    -- * Number methods helper
+    numberBoolMethod,
 
     -- * Not implemented helper
     nativeNotImplemented,
@@ -53,6 +58,7 @@ import HaSOM.VM.Object
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
+import GHC.Float (int2Double)
 
 data PrimitiveContainer = MkPrimitiveContainer
   { name :: Text,
@@ -179,9 +185,9 @@ pureNativeFun f = mkNativeFun $ do
   void popCallFrame
   pure Nothing
 
-nativeNotImplemented :: NativeFun
-nativeNotImplemented = pureNativeFun @N0 $ \self Nil -> do
-  lift $ putStrLn "TODO: Not yet implemented"
+nativeNotImplemented :: String -> NativeFun
+nativeNotImplemented str = pureNativeFun @N0 $ \self Nil -> do
+  lift $ putStrLn $ "TODO: Not yet implemented '" ++ str ++ "'"
   pure self
 
 --------------------------------------------------
@@ -197,6 +203,13 @@ castDouble idx =
   getAsObject idx >>= \case
     DoubleObject {doubleValue} -> pure doubleValue
     obj -> wrongObjectType obj DoubleT
+
+castPromoteDouble :: (GCEff r, Member ExcT r) => ObjIx -> Eff r Double
+castPromoteDouble idx =
+  getAsObject idx >>= \case
+    IntObject {intValue} -> pure (int2Double intValue)
+    DoubleObject {doubleValue} -> pure doubleValue
+    obj -> wrongObjectType obj NumT
 
 castString :: (GCEff r, Member ExcT r) => ObjIx -> Eff r Text
 castString idx =
@@ -222,3 +235,25 @@ castArray idx =
   getAsObject idx >>= \case
     obj@ArrayObject {arrayValue} -> pure (arrayValue, \val -> obj {arrayValue = val})
     obj -> wrongObjectType obj ArrayT
+
+--------------------------------------------------
+
+numberBoolMethod :: (forall a . (Eq a, Ord a) => a -> a -> Bool) -> NativeFun
+numberBoolMethod op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
+  selfObj <- getAsObject self
+  otherObj <- getAsObject other
+
+  let res = case (selfObj, otherObj) of
+        (IntObject {intValue = i1}, IntObject {intValue = i2}) ->
+          i1 `op` i2
+        (IntObject {intValue = i1}, DoubleObject {doubleValue = d2}) ->
+          int2Double i1 `op` d2
+        (DoubleObject {doubleValue = d1}, IntObject {intValue = i2}) ->
+          d1 `op` int2Double i2
+        (DoubleObject {doubleValue = d1}, DoubleObject {doubleValue = d2}) ->
+          d1 `op` d2
+        _ -> False
+
+  if res
+    then newTrue >>= addToGC
+    else newFalse >>= addToGC

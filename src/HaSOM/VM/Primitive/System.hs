@@ -34,10 +34,10 @@ instanceMs =
     ("printNewline", printNewlineM),
     ("errorPrintln:", errorPrintln),
     ("errorPrint:", errorPrint),
-    ("printStackTrace", nativeNotImplemented), -- TODO
-    ("time", nativeNotImplemented), -- TODO
-    ("ticks", nativeNotImplemented), -- TODO
-    ("fullGC", nativeNotImplemented) -- TODO
+    ("printStackTrace", nativeNotImplemented "printStackTrace"), -- TODO
+    ("time", nativeNotImplemented "time"), -- TODO
+    ("ticks", nativeNotImplemented "ticks"), -- TODO
+    ("fullGC", nativeNotImplemented "fullGC") -- TODO
   ]
 
 classMs :: [(Text, NativeFun)]

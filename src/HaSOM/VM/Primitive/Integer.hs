@@ -5,20 +5,22 @@
 
 module HaSOM.VM.Primitive.Integer (primitives) where
 
-import System.Random (randomIO)
+import Control.Monad ((>=>))
 import Data.Bits
+import Data.Int (Int32)
 import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Utility (showT)
+import Data.Word (Word32)
 import GHC.Float (int2Double)
 import HaSOM.VM.Object (ObjIx)
 import HaSOM.VM.Object.VMObject (VMObject (..))
 import HaSOM.VM.Primitive.Type
 import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Operations
-import Data.Text.Utility (showT)
+import System.Random (randomIO)
 import Text.Read (readMaybe)
-import qualified Data.Text as T
-import Control.Monad ((>=>))
-import Data.Functor ((<&>))
+import Data.Fixed (mod')
 
 primitives :: PrimitiveContainer
 primitives =
@@ -33,21 +35,21 @@ instanceMs =
   [ ("+", binaryMethod (+)),
     ("-", binaryMethod (-)),
     ("*", binaryMethod (*)),
-    ("/", divideInt),
+    ("/", nonzeroMethod div),
     ("//", divideDouble),
-    ("%", modInt),
-    ("rem:", remInt),
+    ("%", nonzeroMethod mod),
+    ("rem:", nonzeroMethod rem),
     ("&", binaryMethodInt (.&.)),
     ("<<", binaryMethodInt shiftL),
-    (">>>", binaryMethodInt rotateR),
+    (">>>", binaryMethodInt shiftR),
     ("bitXor:", binaryMethodInt xor),
     ("sqrt", sqrtInt),
     ("atRandom", atRandom),
-    ("=", equalInt),
-    ("<", lessThanInt),
+    ("=", numberBoolMethod (==)),
+    ("<", numberBoolMethod (<)),
     ("asString", asString),
-    ("as32BitSignedValue", nativeNotImplemented), -- TODO
-    ("as32BitUnsignedValue", nativeNotImplemented), -- TODO
+    ("as32BitSignedValue", as32Signed ),
+    ("as32BitUnsignedValue", as32Unsigned ),
     ("asDouble", asDouble)
   ]
 
@@ -77,13 +79,6 @@ castOrPromote a b = do
       pure $ Right (d1, d2)
     (obj, _) -> wrongObjectType obj NumT
 
-castPromoteDouble :: (GCEff r, Member ExcT r) => ObjIx -> Eff r Double
-castPromoteDouble idx =
-  getAsObject idx >>= \case
-    IntObject {intValue} -> pure (int2Double intValue)
-    DoubleObject {doubleValue} -> pure doubleValue
-    obj -> wrongObjectType obj NumT
-
 ---------------------------------
 
 binaryMethod :: (forall a. Num a => a -> a -> a) -> NativeFun
@@ -101,6 +96,19 @@ binaryMethodInt op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
 
   newInt (a `op` b) >>= addToGC
 
+nonzeroMethod :: (Int -> Int -> Int) -> NativeFun
+nonzeroMethod op = pureNativeFun @N1 $ \self (other :+: Nil) -> do
+  a <- castInt self
+  b <- castInt other
+  if b == 0
+    then getNil
+    else newInt (a `op` b) >>= addToGC
+
+mbyDowncast :: RestrictedNativeFun r => Double -> Eff r ObjIx
+mbyDowncast res
+  | res `mod'` 1 == 0 = newInt (round res) >>= addToGC
+  | otherwise = newDouble res >>= addToGC
+
 ---------------------------------
 -- Instance
 
@@ -111,65 +119,15 @@ divideDouble = pureNativeFun @N1 $ \self (other :+: Nil) -> do
 
   if b == 0
     then getNil
-    else newDouble (a / b) >>= addToGC
-
-divideInt :: NativeFun
-divideInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  a <- castInt self
-  b <- castInt other
-
-  if b == 0
-    then getNil
-    else newInt (a `div` b) >>= addToGC
-
-remInt :: NativeFun
-remInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  a <- castInt self
-  b <- castInt other
-
-  if b == 0
-    then getNil
-    else newInt (a `rem` b) >>= addToGC
-
-modInt :: NativeFun
-modInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  a <- castInt self
-  b <- castInt other
-
-  if b == 0
-    then getNil
-    else newInt (a `mod` b) >>= addToGC
-
+    else mbyDowncast (a / b)
 
 sqrtInt :: NativeFun
 sqrtInt = pureNativeFun @N0 $ \self Nil -> do
   s <- castInt self
-
-  newDouble (sqrt $ int2Double s) >>= addToGC
-
-equalInt :: NativeFun
-equalInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  a <- castInt self
-  res <- getAsObject other <&> \case
-    IntObject{intValue} -> intValue == a
-    _ -> False
-
-  if res
-    then newTrue >>= addToGC
-    else newFalse >>= addToGC
-
-lessThanInt :: NativeFun
-lessThanInt = pureNativeFun @N1 $ \self (other :+: Nil) -> do
-  a <- castInt self
-  b <- castInt other
-
-  if a < b
-    then newTrue >>= addToGC
-    else newFalse >>= addToGC
+  mbyDowncast (sqrt $ int2Double s)
 
 atRandom :: NativeFun
-atRandom = pureNativeFun @N0 $ \self Nil -> do
-  _ <- castInt self
+atRandom = pureNativeFun @N0 $ \_ Nil -> do
   i <- lift (randomIO :: IO Int)
   newInt i >>= addToGC
 
@@ -182,6 +140,22 @@ asDouble :: NativeFun
 asDouble = pureNativeFun @N0 $ \self Nil -> do
   a <- castInt self
   newDouble (int2Double a) >>= addToGC
+
+as32Signed :: NativeFun
+as32Signed = pureNativeFun @N0 $ \self Nil -> do
+  a <- castInt self
+  newInt (cast a) >>= addToGC
+  where
+    cast :: Int -> Int
+    cast = fromIntegral . (fromIntegral :: Int -> Int32)
+
+as32Unsigned :: NativeFun
+as32Unsigned = pureNativeFun @N0 $ \self Nil -> do
+  a <- castInt self
+  newInt (cast a) >>= addToGC
+  where
+    cast :: Int -> Int
+    cast = fromIntegral . (fromIntegral :: Int -> Word32)
 
 ---------------------------------
 -- Class

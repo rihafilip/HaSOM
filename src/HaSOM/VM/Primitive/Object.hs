@@ -29,8 +29,8 @@ instanceMs =
     ("objectSize", objectSize),
     ("==", equals),
     ("hashcode", hashcode),
-    ("inspect", nativeNotImplemented), -- TODO
-    ("halt", nativeNotImplemented), -- TODO
+    ("inspect", nativeNotImplemented "inspect"), -- TODO
+    ("halt", nativeNotImplemented "halt"), -- TODO
     ("perform:", perform),
     ("perform:withArguments:", performWithArguments),
     ("perform:inSuperclass:", performInSuperclass),
