@@ -54,6 +54,7 @@ library:
   - bytestring
   - hashable
   - random
+  - time
   - extensible-effects
   - filepath
   - directory

@@ -13,6 +13,9 @@ import Data.Functor ((<&>))
 import qualified Data.Text.IO as TIO
 import qualified Data.Text as T
 import System.IO (stderr)
+import Data.Time.Clock.System (getSystemTime, SystemTime (systemSeconds, systemNanoseconds))
+import HaSOM.VM.Disassembler (stackTrace)
+import Control.Monad ((>=>))
 
 primitives :: PrimitiveContainer
 primitives =
@@ -34,10 +37,10 @@ instanceMs =
     ("printNewline", printNewlineM),
     ("errorPrintln:", errorPrintln),
     ("errorPrint:", errorPrint),
-    ("printStackTrace", nativeNotImplemented "printStackTrace"), -- TODO
-    ("time", nativeNotImplemented "time"), -- TODO
-    ("ticks", nativeNotImplemented "ticks"), -- TODO
-    ("fullGC", nativeNotImplemented "fullGC") -- TODO
+    ("printStackTrace", printStackTrace),
+    ("time", systemTime),
+    ("ticks", systemTicks),
+    ("fullGC", fullGC)
   ]
 
 classMs :: [(Text, NativeFun)]
@@ -121,3 +124,33 @@ errorPrintln = printIOStr (TIO.hPutStrLn stderr)
 
 errorPrint :: NativeFun
 errorPrint = printIOStr (TIO.hPutStr stderr)
+
+printStackTrace :: NativeFun
+printStackTrace = mkNativeFun $ do
+  getSelf >>= pushStack
+  _ <- popCallFrame
+  get >>= (stackTrace >=> lift . TIO.putStrLn)
+  pure Nothing
+
+systemTime :: NativeFun
+systemTime = pureNativeFun @N0 $ \_ Nil -> do
+  initial <- runRuntimeStartTime <$> ask
+  curr <- lift getSystemTime
+
+  let res = fromIntegral (systemSeconds curr - systemSeconds initial)
+
+  newInt res >>= addToGC
+
+systemTicks :: NativeFun
+systemTicks = pureNativeFun @N0 $ \_ Nil -> do
+  initial <- runRuntimeStartTime <$> ask
+  curr <- lift getSystemTime
+
+  let res = fromIntegral ((systemNanoseconds curr - systemNanoseconds initial) `div` 1000)
+
+  newInt res >>= addToGC
+
+fullGC :: NativeFun
+fullGC = pureNativeFun @N0 $ \_ Nil -> do
+  put RunGC
+  newTrue >>= addToGC

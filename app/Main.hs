@@ -19,11 +19,12 @@ import System.Exit (ExitCode (ExitFailure), exitWith)
 data HaSOM
   = Scan {filepath :: FilePath}
   | Parse {filepath :: FilePath}
-  | Compile {classpath :: [FilePath]}
+  | Compile {classpath :: [FilePath], time :: Bool}
   | Exec
       { mainClass :: Text,
         classpath :: [FilePath],
         arguments :: [Text],
+        time :: Bool,
         trace :: Bool
       }
   deriving (Show, Data, Typeable)
@@ -37,11 +38,12 @@ parse =
     += help "Parse the file and print the abstract syntax tree"
 
 compile =
-  record Compile {} [classpath := def += args += typ "FILES/DIRS"]
+  record
+    Compile {}
+    [ classpath := def += args += typ "FILES/DIRS",
+      time := def += help "Enable time measurement"
+    ]
     += help "Compile the files on given filepaths and print the disassembled initial runtime"
-
---   Compile {classpath = def &= args &= typ "FILES/DIRS"}
---     &= help "Compile the files on given filepaths and print the disassembled initial runtime"
 
 exec =
   record
@@ -49,6 +51,7 @@ exec =
     [ classpath := def += typ "FILES/DIRS",
       mainClass := "" += argPos 0 += typ "mainClass",
       arguments := def += args += typ "ARGS",
+      time := def += help "Enable time measurement",
       trace := def += help "Enable VM tracing"
     ]
     += auto
@@ -77,9 +80,9 @@ main = do
       Parse fp ->
         wrap (doParse fp)
           >>= TIO.putStrLn . prettyPrintAST
-      Compile fps ->
-        wrap (doCompile fps)
+      Compile {..} ->
+        wrap (doCompile time classpath)
           >>= TIO.putStrLn . doDisassemble
-      Exec {mainClass, classpath, arguments, trace} ->
-        wrap (doCompile classpath)
-          >>= doExecute mainClass arguments trace
+      Exec {..} ->
+        wrap (doCompile time classpath)
+          >>= doExecute mainClass arguments trace time

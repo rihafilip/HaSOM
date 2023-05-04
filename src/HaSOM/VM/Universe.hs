@@ -12,6 +12,9 @@ module HaSOM.VM.Universe
     -- * Run GC flag
     GCFlag(..),
 
+    -- * Execution time start
+    RuntimeStartTime(..),
+
     -- * Native function specialization of parametrized types
     CallFrameNat,
     CallStackItemNat,
@@ -22,7 +25,6 @@ module HaSOM.VM.Universe
     VMMethodNat,
     VMObjectNat,
     GCNat,
-
     -- * Working stack definition
     ObjStack,
 
@@ -35,6 +37,7 @@ module HaSOM.VM.Universe
     GCEff,
     UniverseEff,
     TraceEff,
+    RuntimeStartTimeEff,
 
     -- * Primitive function definitions
     NativeFun,
@@ -51,6 +54,7 @@ import Control.Eff.State.Strict (State)
 import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
 import HaSOM.VM.Object
+import Data.Time.Clock.System (SystemTime)
 
 -----------------------------------
 
@@ -71,6 +75,13 @@ whenTrace f = ask >>= \case
 -- It cannot be run immidietly, because some object
 -- might not be reachable to mark yet
 data GCFlag = RunGC | NoGC
+
+-----------------------------------
+
+-- | Time when the Runtime was started,
+-- used for determining how long did VM run
+newtype RuntimeStartTime =
+  MkRuntimeStartTime { runRuntimeStartTime :: SystemTime }
 
 -----------------------------------
 
@@ -126,6 +137,9 @@ type GCEff r = [State GCNat, State GCFlag] <:: r
 -- | VM Trace effect
 type TraceEff r = Member (Reader Trace) r
 
+-- | VM run time effect
+type RuntimeStartTimeEff r = Member (Reader RuntimeStartTime) r
+
 -----------------------------------
 
 -- | Whole VM effect
@@ -137,6 +151,7 @@ type UniverseEff r =
     State VMLiterals,
     State GCNat,
     State GCFlag,
+    Reader RuntimeStartTime,
     ExcT
   ]
     <:: r

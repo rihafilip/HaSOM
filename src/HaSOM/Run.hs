@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE TypeApplications #-}
 
 module HaSOM.Run (doScan, doParse, doCompile, doDisassemble, doExecute) where
@@ -8,6 +9,7 @@ import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
+import Control.Monad (when)
 import qualified Data.ByteString.Lazy as B
 import Data.Functor ((<&>))
 import Data.Stack (emptyStack)
@@ -15,6 +17,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Text.Utility
+import Data.Time.Clock.System
 import qualified HaSOM.AST as AST
 import HaSOM.Compiler
 import HaSOM.Interpreter
@@ -24,6 +27,7 @@ import HaSOM.VM.Disassembler
 import qualified HaSOM.VM.GC as GC
 import HaSOM.VM.Primitive (defaultPrimitives)
 import HaSOM.VM.Universe
+import Numeric (showFFloat)
 import System.Directory (doesDirectoryExist, doesFileExist)
 import System.Directory.Recursive (getFilesRecursive)
 import System.Exit (ExitCode (ExitFailure), exitFailure, exitSuccess, exitWith)
@@ -56,18 +60,26 @@ doParse fp = do
     102
     (parse tokens)
 
-doCompile :: ExecEff r => [FilePath] -> Eff r CompilationResult
-doCompile files = do
+doCompile :: ExecEff r => Bool -> [FilePath] -> Eff r CompilationResult
+doCompile time files = do
+  startTime <- lift getSystemTime
   classpaths <-
     lift $
       filter ((==) ".som" . takeExtension)
         . concat
         <$> mapM collect files
   asts <- mapM doParse classpaths
-  tryEff
-    "Compilation error: "
-    103
-    (compile asts defaultPrimitives)
+  res <-
+    tryEff
+      "Compilation error: "
+      103
+      (compile asts defaultPrimitives)
+  endTime <- lift getSystemTime
+  lift $
+    when time $
+      putStrLn $
+        "Compilation time: " ++ diffTime endTime startTime
+  pure res
   where
     collect fp =
       doesDirectoryExist fp >>= \case
@@ -84,25 +96,32 @@ doDisassemble MkCompilationResult {globals, literals} =
     lits <- disassembleLiterals literals
     pure $ lits <+ "\n\n" <+ gls
 
-doExecute :: Text -> [Text] -> Bool -> CompilationResult -> IO ()
-doExecute clazz args trace MkCompilationResult {..} =
+doExecute :: Text -> [Text] -> Bool -> Bool -> CompilationResult -> IO ()
+doExecute clazz args trace time MkCompilationResult {..} =
   do
-    let cs = (emptyStack :: CallStackNat)
-    let os = (emptyStack :: ObjStack)
     let gc = (GC.fromList nilObj heap :: GCNat)
+
+    startTime <- getSystemTime
 
     (((res, fGC), fCs), fOs) <-
       runLift $
-        runState os $
+        -- Compiled parts
+        runReader coreClasses $
           evalState globals $
-            runReader coreClasses $
-              runReader (traceFromBool trace) $
-                runState cs $
-                  evalState literals $
-                    runState gc $
-                      evalState NoGC $
-                        runError @Text
-                          (bootstrap clazz args >> interpret)
+            evalState literals $
+              -- Execution defaults
+              runState (emptyStack :: ObjStack) $
+                runState (emptyStack :: CallStackNat) $
+                  runState gc $ -- Garbage collector
+                  -- Meta informations
+                    evalState NoGC $ -- Initialy GC should not be ran
+                      runReader (traceFromBool trace) $ -- Tracing
+                        runReader (MkRuntimeStartTime startTime) $ -- Exec time
+                        -- Error type
+                          runError @Text
+                            (bootstrap clazz args >> interpret)
+
+    endTime <- getSystemTime
 
     let doTrace =
           if trace
@@ -117,10 +136,24 @@ doExecute clazz args trace MkCompilationResult {..} =
               putStrLn "Stack trace:"
               runLift (stackTrace fCs) >>= TIO.putStrLn
 
+    let pTime =
+          when time $
+            putStrLn $
+              "Execution time: " ++ diffTime endTime startTime
+
     case res of
       Left txt -> do
         TIO.hPutStrLn stderr ("Runtime error: " <+ txt)
         doTrace
+        pTime
         exitFailure
-      Right 0 -> exitSuccess
-      Right n -> doTrace >> exitWith (ExitFailure n)
+      Right 0 -> pTime >> exitSuccess
+      Right n -> pTime >> exitWith (ExitFailure n)
+
+diffTime :: SystemTime -> SystemTime -> String
+diffTime end start =
+  let s = systemSeconds end - systemSeconds start
+      ns = systemNanoseconds end - systemNanoseconds start
+      ns' :: Double
+      ns' = fromIntegral ns / 1_000_000_000
+   in showFFloat (Just 4) (fromIntegral s + ns') "s"

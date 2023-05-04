@@ -164,6 +164,7 @@ type RestrictedNativeFun r = (Lifted IO r, [
     State VMLiterals,
     State GCNat,
     State GCFlag,
+    Reader RuntimeStartTime,
     ExcT
   ] <:: r)
 
