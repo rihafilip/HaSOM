@@ -8,21 +8,22 @@ CustomTestHarness = TestHarness (
           ClassLoadingTest,
           ClassStructureTest,
           ClosureTest,
-          "CoercionTest," "Double"
+          CoercionTest,
           CompilerReturnTest,
           DictionaryTest,
-          "DoubleTest,"
-          "GlobalTest,"
+          "DoesNotUnderstandTest,"
+          DoubleTest,
+          CustomGlobalTest,
           HashTest,
-          "IntegerTest," "Double"
+          IntegerTest,
           PreliminaryTest,
-          "ReflectionTest,"
+          ReflectionTest,
           SelfBlockTest,
           SetTest,
           StringTest,
           SuperTest,
           SymbolTest,
-          "SystemTest,"
+          SystemTest,
           VectorTest
     )
 )

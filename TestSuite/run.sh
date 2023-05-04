@@ -4,4 +4,5 @@ stack run -- exec \
     -c core-lib/Smalltalk/ \
     -c core-lib/TestSuite/ \
     -c TestSuite \
-    CustomTestHarness
+    --time \
+    CustomTestHarness $@

@@ -1,0 +1,12 @@
+CustomGlobalTest = TestCase (
+    testKnownGlobals = (
+      self assert: True   equals: true  class.
+      self assert: False  equals: false class.
+      self assert: Nil    equals: nil   class.
+      self assert: System equals: system class.
+    )
+
+    escapingBlock = (
+       ^ [ EscapingBlockGlobal ]
+    )
+)
