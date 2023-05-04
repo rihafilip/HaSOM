@@ -4,22 +4,23 @@ NewTerm
 Identifier run
 Equal
 NewTerm
-STString 'Simple string'
+STString Simple string
 Identifier println
 Period
-STString ''
+STString 
 Identifier println
 Period
-STString '\thello\tworld\n'
+STString 	hello	world
+
 Identifier print
 Period
-STString 'This is \'quotes \' here'
+STString This is 'quotes ' here
 Identifier println
 Period
-STString 'This is slash \\'
+STString This is slash \
 Identifier println
 Period
-STString 'This is some escaped tokens \b \r \f'
+STString This is some escaped tokens   
 Identifier println
 Period
 EndTerm

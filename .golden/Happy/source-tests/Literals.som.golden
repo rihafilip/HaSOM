@@ -30,9 +30,9 @@ instance methods:
       (Double 4.4)
     )
     (Array 
-      (String 'a')
-      (String 'b')
-      (String 'c')
+      (String a)
+      (String b)
+      (String c)
     )
     (Array 
       (Symbol a)
@@ -41,7 +41,7 @@ instance methods:
     )
     (Array 
       (Integer 1)
-      (String 'b')
+      (String b)
       (Symbol symbol)
       (Double 4.4)
     )

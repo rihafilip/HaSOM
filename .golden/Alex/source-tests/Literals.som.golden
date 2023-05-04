@@ -57,9 +57,9 @@ EndTerm
 Period
 Pound
 NewTerm
-STString 'a'
-STString 'b'
-STString 'c'
+STString a
+STString b
+STString c
 EndTerm
 Period
 Pound
@@ -75,7 +75,7 @@ Period
 Pound
 NewTerm
 Integer 1
-STString 'b'
+STString b
 Pound
 Identifier symbol
 Double 4.4

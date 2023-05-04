@@ -5,22 +5,23 @@ instance variables:
 instance methods:
   (UnaryMethod "run"
     (UnaryCall "println"
-      (String 'Simple string')
+      (String Simple string)
     )
     (UnaryCall "println"
-      (String '')
+      (String )
     )
     (UnaryCall "print"
-      (String '\thello\tworld\n')
+      (String 	hello	world
+)
     )
     (UnaryCall "println"
-      (String 'This is \'quotes \' here')
+      (String This is 'quotes ' here)
     )
     (UnaryCall "println"
-      (String 'This is slash \\')
+      (String This is slash \)
     )
     (UnaryCall "println"
-      (String 'This is some escaped tokens \b \r \f')
+      (String This is some escaped tokens   )
     )
   )
 class variables:
