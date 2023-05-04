@@ -16,6 +16,9 @@ module Data.Stack
 
     -- * Size of stack
     size,
+
+    -- * Transformation
+    toList,
   )
 where
 
@@ -72,3 +75,6 @@ top = fmap snd . pop
 -- | Return the size of the stack
 size :: Stack a -> Int
 size = length . stackData
+
+toList :: Stack a -> [a]
+toList = stackData

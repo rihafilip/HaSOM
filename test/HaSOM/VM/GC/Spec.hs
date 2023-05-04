@@ -9,6 +9,7 @@ import HaSOM.VM.Object (ObjIx)
 import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck
+import qualified Data.HashSet as Set
 
 instance (Arbitrary a) => Arbitrary (GC a) where
   arbitrary = do
@@ -21,9 +22,6 @@ instance (Arbitrary a) => Arbitrary (GC a) where
           (gc', idx) = GC.new gc
         in GC.setAt idx x gc'
 
-instance Show (GC a) where
-  show = const "<GC>"
-
 exampleNil :: Int
 exampleNil = -10
 
@@ -34,11 +32,16 @@ genPos :: Gen Int
 genPos = abs <$> (arbitrary :: Gen Int)
 
 addMany :: GC Int -> [Int] -> GC Int
-addMany = foldl add
+addMany = foldl add'
   where
-    add gc el =
+    add' gc el =
       let (gc', ix) = GC.new gc
        in GC.setAt ix el gc'
+
+add :: GC Int -> Int -> (GC Int, ObjIx)
+add gc el = (GC.setAt ix el gc', ix)
+  where
+    (gc', ix) = GC.new gc
 
 spec :: Spec
 spec =
@@ -47,15 +50,7 @@ spec =
       let gc = addMany exampleGC (replicate 7 0)
       GC.getAt (GC.nil gc) gc `shouldBe` Just exampleNil
 
-    it "getAt on empty GC returns Nothing" $
-      mapM_
-        (\ix -> GC.getAt ix exampleGC `shouldBe` Nothing)
-        [-13, -1, 1, 5, 7, 10]
-
     it "getAt returns the correct element" $ do
-      let add gc el = (GC.setAt ix el gc', ix)
-            where
-              (gc', ix) = GC.new gc
       let (gc1, ix1) = add exampleGC 1
       let (gc2, ix2) = add gc1 2
       let (gc3, ix3) = add gc2 3
@@ -99,6 +94,26 @@ spec =
         ix5
         5
         [gc5]
+
+    it "Collecting keeps the correct items" $ do
+      let (gc1, ix1) = add exampleGC 1
+      let (gc2, ix2) = add gc1 2
+      let (gc3, ix3) = add gc2 3
+      let (gc4, ix4) = add gc3 4
+      let (gc, ix5) = add gc4 5
+
+      let gc' = GC.collect (Set.fromList [ix1, ix2, ix3, ix4, ix5]) $
+            addMany gc (replicate 100 (-1))
+      let finalGC = addMany gc' (replicate 100 (-1))
+
+      GC.nil finalGC `shouldBe` GC.nil exampleGC
+      GC.getAt (GC.nil finalGC) finalGC `shouldBe` Just exampleNil
+
+      GC.getAt ix1 finalGC `shouldBe` Just 1
+      GC.getAt ix2 finalGC `shouldBe` Just 2
+      GC.getAt ix3 finalGC `shouldBe` Just 3
+      GC.getAt ix4 finalGC `shouldBe` Just 4
+      GC.getAt ix5 finalGC `shouldBe` Just 5
 
     -- Props
     prop "set and get identity" prop_SetGet

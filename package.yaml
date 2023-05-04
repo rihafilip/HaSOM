@@ -87,6 +87,7 @@ tests:
     - hspec
     - hspec-golden
     - QuickCheck
+    - unordered-containers
     - bytestring
     - text
     - hashable
