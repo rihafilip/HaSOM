@@ -96,8 +96,8 @@ doDisassemble MkCompilationResult {globals, literals} =
     lits <- disassembleLiterals literals
     pure $ lits <+ "\n\n" <+ gls
 
-doExecute :: Text -> [Text] -> Bool -> Bool -> CompilationResult -> IO ()
-doExecute clazz args trace time MkCompilationResult {..} =
+doExecute :: Text -> [Text] -> Bool -> Bool -> Bool -> CompilationResult -> IO ()
+doExecute clazz args execTrace gcTrace time MkCompilationResult {..} =
   do
     let gc = (GC.fromList nilObj heap :: GCNat)
 
@@ -115,7 +115,7 @@ doExecute clazz args trace time MkCompilationResult {..} =
                   runState gc $ -- Garbage collector
                   -- Meta informations
                     evalState NoGC $ -- Initialy GC should not be ran
-                      runReader (traceFromBool trace) $ -- Tracing
+                      runReader (MkTrace{execTrace, gcTrace}) $ -- Tracing
                         runReader (MkRuntimeStartTime startTime) $ -- Exec time
                         -- Error type
                           runError @Text
@@ -124,7 +124,7 @@ doExecute clazz args trace time MkCompilationResult {..} =
     endTime <- getSystemTime
 
     let doTrace =
-          if trace
+          if execTrace
             then do
               putStrLn ""
               putStrLn "Stack trace:"

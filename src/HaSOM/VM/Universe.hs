@@ -6,8 +6,8 @@
 module HaSOM.VM.Universe
   ( -- * Tracing flag definition
     Trace(..),
-    traceFromBool,
     whenTrace,
+    whenTraceGC,
 
     -- * Run GC flag
     GCFlag(..),
@@ -55,19 +55,17 @@ import Data.Stack (Stack)
 import HaSOM.VM.GC (GC)
 import HaSOM.VM.Object
 import Data.Time.Clock.System (SystemTime)
+import Control.Monad (when)
 
 -----------------------------------
 
-data Trace = DoTrace | NoTrace
-
-traceFromBool :: Bool -> Trace
-traceFromBool True = DoTrace
-traceFromBool False = NoTrace
+data Trace = MkTrace { execTrace :: Bool, gcTrace :: Bool }
 
 whenTrace :: TraceEff r => Eff r () -> Eff r ()
-whenTrace f = ask >>= \case
-  DoTrace -> f
-  NoTrace -> pure ()
+whenTrace f = ask >>= (`when` f) . execTrace
+
+whenTraceGC :: TraceEff r => Eff r () -> Eff r ()
+whenTraceGC f = ask >>= (`when` f) . gcTrace
 
 -----------------------------------
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Code execution methods
 module HaSOM.Interpreter (interpret, bootstrap) where
@@ -16,12 +17,20 @@ import HaSOM.VM.Universe
 import HaSOM.VM.Universe.Instructions
 import HaSOM.VM.Universe.Operations
 import qualified HaSOM.VM.VMArray as Arr
+import qualified HaSOM.VM.GC as GC
 
 -- | GC gets run after each context switch
-mbyRunGC :: (Lifted IO r, UniverseEff r) => Eff r()
+mbyRunGC :: (Lifted IO r, UniverseEff r, TraceEff r) => Eff r()
 mbyRunGC =
   get >>= \case
-    RunGC -> runGC
+    RunGC -> do
+      whenTraceGC $ do
+        (heapSize, availableSpace) <- GC.statistics <$> get @GCNat
+        lift $ putStrLn $ "(Before) Heap size: " ++ show heapSize ++ ", available space: " ++ show availableSpace
+      runGC
+      whenTraceGC $ do
+        (heapSize', availableSpace') <- GC.statistics <$> get @GCNat
+        lift $ putStrLn $ "(After)  Heap size: " ++ show heapSize' ++ ", available space: " ++ show availableSpace'
     NoGC -> pure ()
 
 -- | Run the interpreter
@@ -58,7 +67,7 @@ interpret = do
 
   maybe interpret pure r
 
-executeInstruction :: (Lifted IO r, UniverseEff r) => Bytecode -> Eff r (Maybe Int)
+executeInstruction :: (Lifted IO r, UniverseEff r, TraceEff r) => Bytecode -> Eff r (Maybe Int)
 executeInstruction HALT = pure $ Just 0
 executeInstruction bc = do
   case bc of

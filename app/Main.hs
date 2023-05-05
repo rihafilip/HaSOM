@@ -25,7 +25,8 @@ data HaSOM
         classpath :: [FilePath],
         arguments :: [Text],
         time :: Bool,
-        trace :: Bool
+        trace :: Bool,
+        gc :: Bool
       }
   deriving (Show, Data, Typeable)
 
@@ -52,7 +53,8 @@ exec =
       mainClass := "" += argPos 0 += typ "mainClass",
       arguments := def += args += typ "ARGS",
       time := def += help "Enable time measurement",
-      trace := def += help "Enable VM tracing"
+      trace := def += help "Enable VM tracing",
+      gc := def += explicit += name "gc" += help "Enable Garbage Collector tracing"
     ]
     += auto
     += help "Execute the SOM program at given classpaths with given main"
@@ -85,4 +87,4 @@ main = do
           >>= TIO.putStrLn . doDisassemble
       Exec {..} ->
         wrap (doCompile time classpath)
-          >>= doExecute mainClass arguments trace time
+          >>= doExecute mainClass arguments trace gc time

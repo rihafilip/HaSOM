@@ -9,6 +9,7 @@ module HaSOM.VM.GC
     setAt,
     sweep,
     isToRun,
+    statistics,
   )
 where
 
@@ -122,3 +123,6 @@ isToRun :: GC a -> Bool
 isToRun MkGC{..} = fromIntegral ( St.size availableIndices )
   < (0.05 :: Double) * fromIntegral (V.length heap)
 
+-- | Return the heap size and available space
+statistics :: GC a -> (Int, Int)
+statistics MkGC {..} = (V.length heap, St.size availableIndices)
