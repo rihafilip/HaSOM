@@ -244,7 +244,7 @@ setFieldE fi obj = do
 addToGC :: GCEff r => VMObjectNat -> Eff r ObjIx
 addToGC obj = do
   gc <- get @GCNat
-  when (GC.isFull gc) $ put RunGC
+  when (GC.isToRun gc) $ put RunGC
   let (gc', newIdx) = GC.new gc
   let gc'' = GC.setAt newIdx obj gc'
   put gc''
@@ -384,7 +384,7 @@ findMethod litIx clazz@MkVMClass {methods, superclass} = do
 runGC :: (Lifted IO r, UniverseEff r) => Eff r ()
 runGC = do
   marked <- mark
-  modify @GCNat $ GC.collect marked
+  modify @GCNat $ GC.sweep marked
   put NoGC
 
 mark :: (Lifted IO r, UniverseEff r) => Eff r (Set.HashSet ObjIx)

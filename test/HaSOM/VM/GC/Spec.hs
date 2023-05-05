@@ -95,14 +95,14 @@ spec =
         5
         [gc5]
 
-    it "Collecting keeps the correct items" $ do
+    it "Sweeping keeps the correct items" $ do
       let (gc1, ix1) = add exampleGC 1
       let (gc2, ix2) = add gc1 2
       let (gc3, ix3) = add gc2 3
       let (gc4, ix4) = add gc3 4
       let (gc, ix5) = add gc4 5
 
-      let gc' = GC.collect (Set.fromList [ix1, ix2, ix3, ix4, ix5]) $
+      let gc' = GC.sweep (Set.fromList [ix1, ix2, ix3, ix4, ix5]) $
             addMany gc (replicate 100 (-1))
       let finalGC = addMany gc' (replicate 100 (-1))
 

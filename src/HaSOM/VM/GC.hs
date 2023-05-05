@@ -7,14 +7,13 @@ module HaSOM.VM.GC
     fromList,
     getAt,
     setAt,
-    collect,
-    isFull,
+    sweep,
+    isToRun,
   )
 where
 
 import qualified Data.Bifunctor as Bf
 import qualified Data.HashSet as Set
-import Data.Maybe (isNothing)
 import qualified Data.Stack as St
 import Data.Vector ((!?), (//))
 import qualified Data.Vector as V
@@ -108,14 +107,18 @@ setAt idx obj gc@MkGC {heap}
   | otherwise = gc {heap = heap // [(getIx idx, obj)]}
 
 -- | Free unused object, where the given indices are still used
-collect :: Set.HashSet ObjIx -> GC a -> GC a
-collect collected gc@MkGC {heap} =
+sweep :: Set.HashSet ObjIx -> GC a -> GC a
+sweep collected gc@MkGC {heap} =
   gc {availableIndices = newIndices}
   where
     newIndices =
       Set.foldr St.push St.emptyStack $
         Set.fromList [1 .. ix (V.length heap - 1)] `Set.difference` collected
 
--- | Check if the GC has no more available free indices
-isFull :: GC a -> Bool
-isFull = isNothing . St.pop . availableIndices
+-- | Check if the GC has less than 5% free space, marking that is should be sweeped
+--
+-- TODO optimize
+isToRun :: GC a -> Bool
+isToRun MkGC{..} = fromIntegral ( St.size availableIndices )
+  < (0.05 :: Double) * fromIntegral (V.length heap)
+
