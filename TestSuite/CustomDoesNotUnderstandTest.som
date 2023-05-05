@@ -1,0 +1,17 @@
+CustomDoesNotUnderstandTest = DoesNotUnderstandTest (
+    testSimpleUnknownFoo = (
+        self signalFailure: 'throws'
+    )
+
+    testArguments = (
+        self signalFailure: 'throws'
+    )
+
+    testRepeat = (
+        self signalFailure: 'throws'
+    )
+
+    -----------------
+
+    methods = ( ^self superclass methods )
+)

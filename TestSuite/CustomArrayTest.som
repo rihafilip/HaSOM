@@ -1,5 +1,5 @@
-CustomBlockTest = BlockTest (
-    testEscapedBlock = (
+CustomArrayTest = ArrayTest (
+    testReject = (
         self signalFailure: 'throws'
     )
 

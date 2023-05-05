@@ -2,7 +2,7 @@ CustomTestHarness = TestHarness (
     tests = ( "Now ordered by alphabetical order to improve maintainability"
         ^ EmptyTest,
           SpecialSelectorsTest,
-          "ArrayTest,"
+          CustomArrayTest,
           CustomBlockTest,
           BooleanTest,
           ClassLoadingTest,
@@ -11,7 +11,7 @@ CustomTestHarness = TestHarness (
           CoercionTest,
           CompilerReturnTest,
           DictionaryTest,
-          "DoesNotUnderstandTest,"
+          CustomDoesNotUnderstandTest,
           DoubleTest,
           CustomGlobalTest,
           HashTest,
