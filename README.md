@@ -1,4 +1,4 @@
-# HaSOM - The Simple Object Machine implemented in HaSOM
+# HaSOM - The Simple Object Machine implemented in Haskell
 
 ## Introduction
 
@@ -36,7 +36,7 @@ For more options, run the help:
 
     $ stack run -- --help
 
-## Tests
+### Tests
 
 The tests can be executed with:
 
@@ -51,15 +51,27 @@ Or with the helper script:
 
     $ ./TestSuite/run.sh
 
-
-Documentation
-------------
+### Documentation
 
 The documentation can be build with:
     
     $ stack haddock
 
-It is then available from **.stack-work/dist/x86_64-linux/Cabal-3.4.1.0/doc/html/HaSOM/index.html**
+It is then available from *.stack-work/dist/x86_64-linux/Cabal-3.4.1.0/doc/html/HaSOM/index.html*
+
+
+## Directory structure
+
+The structure of folders is as follows:
+
+- *src/* - HaSOM source code
+- *app/* - CLI for executing HaSOM
+- *test/* - tests source code
+- *source-tests/* - input file for **golden tests**
+- *.golden/* - expected result for **golden tests**
+- *core-lib/* - linked official SOM repository with standard library, 
+examples and test suite
+- *TestSuite/* - additional files for running the official test suite on HaSOM
 
  [SOM]: http://www.hpi.uni-potsdam.de/hirschfeld/projects/som/
  [SOMst]: https://som-st.github.io/
